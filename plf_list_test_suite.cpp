@@ -486,8 +486,34 @@ int main(int argc, char **argv)
 				test_counter = *it;
 			}
 			
-			failpass("Test reverse", passed);
+			failpass("Reverse test 1", passed);
 
+			{
+				plf::list<int> list2, list3;
+				
+				int counter2 = 50000;
+				for (int counter = 0; counter != 50000; ++counter)
+				{
+					list2.push_back(counter);
+					list3.push_back(--counter2);
+				}
+				
+				list2.reverse();
+				
+				plf::list<int>::iterator it2 = list2.begin(), it3 = list3.begin();
+				
+				do
+				{
+					if (*it2++ != *it3++)
+					{
+						passed = false;
+						break;
+					}
+				}
+				while(it2 != list2.end());
+				
+				failpass("Reverse test 2", passed);
+			}
 
 
 			title2("Unique tests");
@@ -1610,22 +1636,22 @@ int main(int argc, char **argv)
 
 		{
 			title2("Range-erase tests");
-		
+
 			list<int> i_list;
-			
+
 			for (int counter = 0; counter != 1000; ++counter)
 			{
 				i_list.push_back(counter);
 			}
-			
-			
-			list<int>::iterator it1 = i_list.begin(), it2 = i_list.begin();
-			
+
+
+			list<int>::iterator it1 = i_list.begin(), it2 = i_list.begin(), it3;
+
 			std::advance(it1, 500);
 			std::advance(it2, 800);
-			
-			list<int>::iterator it3 = i_list.erase(it1, it2);
-			
+
+			it3 = i_list.erase(it1, it2);
+
 			int counter = 0;
 
 			for (list<int>::iterator it = i_list.begin(); it != i_list.end(); ++it)
@@ -1635,7 +1661,9 @@ int main(int argc, char **argv)
 
 			failpass("Simple range-erase test 1", counter == 700 && i_list.size() == 700 && it3 == it2);
 
-		
+			failpass("Range-erase return value test", it3 == it2);
+
+
 			it1 = it2 = i_list.begin();
 			
 			std::advance(it1, 400);
