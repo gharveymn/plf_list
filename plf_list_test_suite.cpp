@@ -486,8 +486,34 @@ int main(int argc, char **argv)
 				test_counter = *it;
 			}
 			
-			failpass("Test reverse", passed);
+			failpass("Reverse test 1", passed);
 
+			{
+				plf::list<int> list2, list3;
+				
+				int counter2 = 50000;
+				for (int counter = 0; counter != 50000; ++counter)
+				{
+					list2.push_back(counter);
+					list3.push_back(--counter2);
+				}
+				
+				list2.reverse();
+				
+				plf::list<int>::iterator it2 = list2.begin(), it3 = list3.begin();
+				
+				do
+				{
+					if (*it2++ != *it3++)
+					{
+						passed = false;
+						break;
+					}
+				}
+				while(it2 != list2.end());
+				
+				failpass("Reverse test 2", passed);
+			}
 
 
 			title2("Unique tests");
@@ -1610,22 +1636,22 @@ int main(int argc, char **argv)
 
 		{
 			title2("Range-erase tests");
-		
+
 			list<int> i_list;
-			
+
 			for (int counter = 0; counter != 1000; ++counter)
 			{
 				i_list.push_back(counter);
 			}
-			
-			
-			list<int>::iterator it1 = i_list.begin(), it2 = i_list.begin();
-			
+
+
+			list<int>::iterator it1 = i_list.begin(), it2 = i_list.begin(), it3;
+
 			std::advance(it1, 500);
 			std::advance(it2, 800);
-			
-			list<int>::iterator it3 = i_list.erase(it1, it2);
-			
+
+			it3 = i_list.erase(it1, it2);
+
 			int counter = 0;
 
 			for (list<int>::iterator it = i_list.begin(); it != i_list.end(); ++it)
@@ -1633,15 +1659,17 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Simple range-erase test 1", counter == 700 && i_list.size() == 700 && it3 == it2);
+			failpass("Simple range-erase test 1", counter == 700 && i_list.size() == 700);
 
-		
+			failpass("Range-erase return value test", it3 == it2);
+
+
 			it1 = it2 = i_list.begin();
 			
 			std::advance(it1, 400);
 			std::advance(it2, 500); // This should put it2 past the point of previous erasures
 			
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 			
 			counter = 0;
 
@@ -1650,7 +1678,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Simple range-erase test 2", counter == 600 && i_list.size() == 600 && it3 == it2);
+			failpass("Simple range-erase test 2", counter == 600 && i_list.size() == 600);
 
 			
 
@@ -1659,7 +1687,7 @@ int main(int argc, char **argv)
 			std::advance(it1, 4);
 			std::advance(it2, 9); // This should put it2 past the point of previous erasures
 			
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 
 			counter = 0;
 
@@ -1668,7 +1696,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Simple range-erase test 3", counter == 595 && i_list.size() == 595 && it3 == it2);
+			failpass("Simple range-erase test 3", counter == 595 && i_list.size() == 595);
 
 			
 
@@ -1677,7 +1705,7 @@ int main(int argc, char **argv)
 			
 			std::advance(it2, 50); 
 			
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 			
 			counter = 0;
 
@@ -1686,7 +1714,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Range-erase from begin() test 1", counter == 545 && i_list.size() == 545 && it3 == it2);
+			failpass("Range-erase from begin() test 1", counter == 545 && i_list.size() == 545);
 
 
 
@@ -1695,7 +1723,7 @@ int main(int argc, char **argv)
 			it2 = i_list.end();
 			
 			std::advance(it1, 345); // Test erasing and validity when it removes the final group in list
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 			
 			counter = 0;
 
@@ -1704,7 +1732,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Range-erase to end() test 1", counter == 345 && i_list.size() == 345 && it3 == it2);
+			failpass("Range-erase to end() test 1", counter == 345 && i_list.size() == 345);
 
 
 
@@ -1729,7 +1757,7 @@ int main(int argc, char **argv)
 			
 			std::advance(it1, 4);
 			std::advance(it2, 600);
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 			
 			counter = 0;
 
@@ -1738,7 +1766,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Range-erase with list already half-erased, alternating erasures", counter == 904 && i_list.size() == 904 && it3 == it2);
+			failpass("Range-erase with list already half-erased, alternating erasures", counter == 904 && i_list.size() == 904);
 
 
 
@@ -1771,7 +1799,7 @@ int main(int argc, char **argv)
 			it2 = i_list.end();
 			
 			std::advance(it1, 400);
-			it3 = i_list.erase(it1, it2);
+			i_list.erase(it1, it2);
 
 			counter = 0;
 
@@ -1780,7 +1808,7 @@ int main(int argc, char **argv)
 				++counter;
 			}
 
-			failpass("Range-erase with list already third-erased, randomizes erasures", counter == 400 && i_list.size() == 400 && it3 == it2);
+			failpass("Range-erase with list already third-erased, randomizes erasures", counter == 400 && i_list.size() == 400);
 
 
 
@@ -1807,7 +1835,7 @@ int main(int argc, char **argv)
 					std::advance(it1, range1);
 					std::advance(it2, range2);
 
-					it3 = i_list.erase(it1, it2);
+					i_list.erase(it1, it2);
 
 					counter = 0;
 
@@ -1816,7 +1844,7 @@ int main(int argc, char **argv)
 						++counter;
 					}
 
-					if (i_list.size() != static_cast<unsigned int>(counter) || it3 != it2)
+					if (i_list.size() != static_cast<unsigned int>(counter))
 					{
 						std::cout << "Fail. loop counter: " << loop_counter << ", internal_loop_counter: " << internal_loop_counter << "." << std::endl;
 						std::cin.get(); 
@@ -1833,7 +1861,7 @@ int main(int argc, char **argv)
 				}
 			}
 
-			failpass("Fuzz-test range-erase randomly until empty", i_list.size() == 0 && it3 == it2);
+			failpass("Fuzz-test range-erase randomly until empty", i_list.size() == 0);
 		}
 
 
