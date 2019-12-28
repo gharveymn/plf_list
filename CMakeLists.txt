@@ -11,10 +11,20 @@ CREATE_HEADER_ONLY_PACKAGE(AUTHOR       mattreecebentley
                            INCLUDE_PATH ".")
 
 # Options
-OPTION(PLF_LIST_BUILD_TESTS "Set to ON to build tests" ON)
+IF(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  OPTION(PLF_LIST_BUILD_TESTS "Set to ON to build tests" ON)
+ELSE()
+  OPTION(PLF_LIST_BUILD_TESTS "Set to ON to build tests" OFF)
+ENDIF()
 
 # Only include tests if we are at the top level
-IF(PLF_LIST_BUILD_TESTS AND (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
-  ADD_EXECUTABLE(test plf_list_test_suite.cpp)
-  TARGET_LINK_LIBRARIES(test plf_list)
+IF(PLF_LIST_BUILD_TESTS)
+  SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  ADD_EXECUTABLE(test_plf_list plf_list_test_suite.cpp)
+  TARGET_LINK_LIBRARIES(test_plf_list plf_list)
+
+  SET_TARGET_PROPERTIES(test_plf_list PROPERTIES
+                        CXX_STANDARD          20
+                        CXX_STANDARD_REQUIRED YES
+                        CXX_EXTENSIONS        NO)
 ENDIF()
