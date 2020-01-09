@@ -3,12 +3,15 @@ PROJECT(plf_list
         VERSION 1.6.9
         LANGUAGES CXX)
 
-INCLUDE(cmake/create-package.cmake)
+EXECUTE_PROCESS(COMMAND "git submodule update --init -- \"external/create-package\""
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-CREATE_HEADER_ONLY_PACKAGE(AUTHOR       mattreecebentley
-                           NAME         plf_list
-                           HEADERS      plf_list.h
-                           INCLUDE_PATH ".")
+INCLUDE("${PROJECT_SOURCE_DIR}/external/create-package/cmake/create-package.cmake")
+
+CREATE_PACKAGE(AUTHOR       mattreecebentley
+               NAME         plf_list
+               HEADERS      plf_list.h
+               HEADERS_PATH ".")
 
 # Options
 IF(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
