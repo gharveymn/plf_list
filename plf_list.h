@@ -70,9 +70,9 @@
 	#endif
 
 	#if defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)
-		#define PLF_LIST_CONSTEXPR constexpr
+		#define PLF_LIST_CPP17_CONSTEXPR constexpr
 	#else
-		#define PLF_LIST_CONSTEXPR
+		#define PLF_LIST_CPP17_CONSTEXPR
 	#endif
 
 #elif defined(__cplusplus) && __cplusplus >= 201103L // C++11 support, at least
@@ -160,16 +160,16 @@
 
 	#if __cplusplus >= 201703L
 		#if defined(__clang__) && ((__clang_major__ == 3 && __clang_minor__ == 9) || __clang_major__ > 3)
-			#define PLF_LIST_CONSTEXPR constexpr
+			#define PLF_LIST_CPP17_CONSTEXPR constexpr
 		#elif defined(__GNUC__) && __GNUC__ >= 7
-			#define PLF_LIST_CONSTEXPR constexpr
+			#define PLF_LIST_CPP17_CONSTEXPR constexpr
 		#elif !defined(__clang__) && !defined(__GNUC__)
-			#define PLF_LIST_CONSTEXPR constexpr // assume correct C++17 implementation for other compilers
+			#define PLF_LIST_CPP17_CONSTEXPR constexpr // assume correct C++17 implementation for other compilers
 		#else
-			#define PLF_LIST_CONSTEXPR
+			#define PLF_LIST_CPP17_CONSTEXPR
 		#endif
 	#else
-		#define PLF_LIST_CONSTEXPR
+		#define PLF_LIST_CPP17_CONSTEXPR
 	#endif
 
 	#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
@@ -178,10 +178,26 @@
 	#define PLF_LIST_NOEXCEPT throw()
 	#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
 	#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
-	#define PLF_LIST_CONSTEXPR
+	#define PLF_LIST_CPP17_CONSTEXPR
 #endif
 
+#if __cpp_constexpr >= 201907L
+#  define PLF_LIST_CPP20_CONSTEXPR constexpr
+#else
+#  define PLF_LIST_CPP20_CONSTEXPR
+#endif
 
+#if __cpp_constexpr >= 201304L
+#  define PLF_LIST_CPP14_CONSTEXPR constexpr
+#else
+#  define PLF_LIST_CPP14_CONSTEXPR
+#endif
+
+#if __cpp_constexpr >= 200704L
+#  define PLF_LIST_CONSTEXPR constexpr
+#else
+#  define PLF_LIST_CONSTEXPR
+#endif
 
 #ifdef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
@@ -304,17 +320,17 @@ private:
 	{
 		node_pointer_type next, previous;
 
-		node_base()
+		PLF_LIST_CONSTEXPR node_base()
 		{}
-
-		node_base(const node_pointer_type &n, const node_pointer_type &p):
+		
+		PLF_LIST_CONSTEXPR node_base(const node_pointer_type &n, const node_pointer_type &p):
 			next(n),
 			previous(p)
 		{}
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			node_base(node_pointer_type &&n, node_pointer_type &&p) PLF_LIST_NOEXCEPT:
+			PLF_LIST_CONSTEXPR node_base(node_pointer_type &&n, node_pointer_type &&p) PLF_LIST_NOEXCEPT:
 				next(std::move(n)),
 				previous(std::move(p))
 			{}
@@ -326,15 +342,15 @@ private:
 	struct node : public node_base
 	{
 		element_type element;
-
-		node(const node_pointer_type next, const node_pointer_type previous, const element_type &source):
+		
+		PLF_LIST_CONSTEXPR node(const node_pointer_type next, const node_pointer_type previous, const element_type &source):
 			node_base(next, previous),
 			element(source)
 		{}
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			node(node_pointer_type &&next, node_pointer_type &&previous, element_type &&source) PLF_LIST_NOEXCEPT:
+			PLF_LIST_CONSTEXPR node(node_pointer_type &&next, node_pointer_type &&previous, element_type &&source) PLF_LIST_NOEXCEPT:
 				node_base(std::move(next), std::move(previous)),
 				element(std::move(source))
 			{}
@@ -343,7 +359,7 @@ private:
 
 		#ifdef PLF_LIST_VARIADICS_SUPPORT
 			template<typename... arguments>
-			node(node_pointer_type const next, node_pointer_type const previous, arguments&&... parameters):
+			PLF_LIST_CONSTEXPR node(node_pointer_type const next, node_pointer_type const previous, arguments&&... parameters):
 				node_base(next, previous),
 				element(std::forward<arguments>(parameters) ...)
 			{}
@@ -358,9 +374,9 @@ private:
 		node_pointer_type free_list_head;
 		node_pointer_type beyond_end;
 		group_size_type number_of_elements;
-
-
-		group() PLF_LIST_NOEXCEPT:
+		
+		
+		PLF_LIST_CONSTEXPR group() PLF_LIST_NOEXCEPT:
 			nodes(NULL),
 			free_list_head(NULL),
 			beyond_end(NULL),
@@ -369,7 +385,7 @@ private:
 
 
 		#if defined(PLF_LIST_VARIADICS_SUPPORT) || defined(PLF_LIST_MOVE_SEMANTICS_SUPPORT)
-			group(const group_size_type group_size, node_pointer_type const previous = NULL):
+			PLF_LIST_CONSTEXPR group(const group_size_type group_size, node_pointer_type const previous = NULL):
 				nodes(PLF_LIST_ALLOCATE_INITIALIZATION(node_allocator_type, group_size, previous)),
 				free_list_head(NULL),
 				beyond_end(nodes + group_size),
@@ -393,9 +409,9 @@ private:
 				number_of_elements(0)
 			{}
 		#endif
-
-
-		group & operator = (const group &source) PLF_LIST_NOEXCEPT // Actually a move operator, used by c++03 in group_vector's remove, expand_capacity and append
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR group & operator = (const group &source) PLF_LIST_NOEXCEPT // Actually a move operator, used by c++03 in group_vector's remove, expand_capacity and append
 		{
 			nodes = source.nodes;
 			free_list_head = source.free_list_head;
@@ -406,7 +422,7 @@ private:
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			group(group &&source) PLF_LIST_NOEXCEPT:
+			PLF_LIST_CPP14_CONSTEXPR group(group &&source) PLF_LIST_NOEXCEPT:
 				node_allocator_type(source),
 				nodes(std::move(source.nodes)),
 				free_list_head(std::move(source.free_list_head)),
@@ -416,9 +432,9 @@ private:
 				source.nodes = NULL;
 				source.beyond_end = NULL;
 			}
-
-
-			group & operator = (group &&source) PLF_LIST_NOEXCEPT
+		
+		
+			PLF_LIST_CPP14_CONSTEXPR group & operator = (group &&source) PLF_LIST_NOEXCEPT
 			{
 				nodes = std::move(source.nodes);
 				free_list_head = std::move(source.free_list_head);
@@ -429,9 +445,9 @@ private:
 				return *this;
 			}
 		#endif
-
-
-		~group() PLF_LIST_NOEXCEPT
+		
+		
+		PLF_LIST_CPP20_CONSTEXPR ~group() PLF_LIST_NOEXCEPT
 		{
 			PLF_LIST_DEALLOCATE(node_allocator_type, (*this), nodes, static_cast<size_type>(beyond_end - nodes));
 		}
@@ -450,18 +466,18 @@ private:
 		struct ebco_pair2 : allocator_type // empty-base-class optimisation
 		{
 			size_type capacity; // Total element capacity of all initialized groups
-			explicit ebco_pair2(const size_type number_of_elements) PLF_LIST_NOEXCEPT: capacity(number_of_elements) {};
+			PLF_LIST_CONSTEXPR explicit ebco_pair2(const size_type number_of_elements) PLF_LIST_NOEXCEPT: capacity(number_of_elements) {};
 		}		element_allocator_pair;
 
 		struct ebco_pair : group_allocator_type
 		{
 			size_type capacity; // Total group capacity
-			explicit ebco_pair(const size_type number_of_groups) PLF_LIST_NOEXCEPT: capacity(number_of_groups) {};
+			PLF_LIST_CONSTEXPR explicit ebco_pair(const size_type number_of_groups) PLF_LIST_NOEXCEPT: capacity(number_of_groups) {};
 		}		group_allocator_pair;
-
-
-
-		group_vector() PLF_LIST_NOEXCEPT:
+		
+		
+		
+		PLF_LIST_CONSTEXPR group_vector() PLF_LIST_NOEXCEPT:
 			node_pointer_allocator_type(node_pointer_allocator_type()),
 			last_endpoint_group(NULL),
 			block_pointer(NULL),
@@ -470,13 +486,13 @@ private:
 			element_allocator_pair(0),
 			group_allocator_pair(0)
 		{}
-
-
-
-		inline PLF_LIST_FORCE_INLINE void blank() PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void blank() PLF_LIST_NOEXCEPT
 		{
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivial<group_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivial<group_pointer_type>::value)
 				{
 					std::memset(static_cast<void *>(this), 0, sizeof(group_vector));
 				}
@@ -495,7 +511,7 @@ private:
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			group_vector(group_vector &&source) PLF_LIST_NOEXCEPT:
+			PLF_LIST_CPP14_CONSTEXPR group_vector(group_vector &&source) PLF_LIST_NOEXCEPT:
 				last_endpoint_group(std::move(source.last_endpoint_group)),
 				block_pointer(std::move(source.block_pointer)),
 				last_searched_group(std::move(source.last_searched_group)),
@@ -505,12 +521,12 @@ private:
 			{
 				source.blank();
 			}
-
-
-			group_vector & operator = (group_vector &&source) PLF_LIST_NOEXCEPT
+		
+		
+			PLF_LIST_CPP14_CONSTEXPR group_vector & operator = (group_vector &&source) PLF_LIST_NOEXCEPT
 			{
 				#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-					if PLF_LIST_CONSTEXPR (std::is_trivial<group_pointer_type>::value)
+					if PLF_LIST_CPP17_CONSTEXPR (std::is_trivial<group_pointer_type>::value)
 					{
 						std::memcpy(static_cast<void *>(this), &source, sizeof(group_vector));
 					}
@@ -529,15 +545,15 @@ private:
 				return *this;
 			}
 		#endif
-
-
-
-		~group_vector() PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP20_CONSTEXPR ~group_vector() PLF_LIST_NOEXCEPT
 		{}
-
-
-
-		void destroy_all_data(const node_pointer_type last_endpoint_node) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void destroy_all_data(const node_pointer_type last_endpoint_node) PLF_LIST_NOEXCEPT
 		{
 			if (block_pointer == NULL)
 			{
@@ -545,7 +561,7 @@ private:
 			}
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
 			#endif
 			{
 				if (last_endpoint_node != NULL)
@@ -563,15 +579,15 @@ private:
 			PLF_LIST_DEALLOCATE(group_allocator_type, group_allocator_pair, block_pointer, group_allocator_pair.capacity);
 			blank();
 		}
-
-
-
-		void clear(const node_pointer_type last_endpoint_node) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void clear(const node_pointer_type last_endpoint_node) PLF_LIST_NOEXCEPT
 		{
 			for (group_pointer_type current_group = block_pointer; current_group != last_endpoint_group; ++current_group)
 			{
 				#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-					if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
+					if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
 				#endif
 				{
 					const node_pointer_type end = current_group->beyond_end;
@@ -581,7 +597,7 @@ private:
 						for (node_pointer_type current_node = current_group->nodes; current_node != end; ++current_node)
 						{
 							#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-								if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
+								if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
 							#endif
 							{
 								if (current_node->next != NULL) // ie. is not part of free list
@@ -591,7 +607,7 @@ private:
 							}
 
 							#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-								if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+								if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 							#endif
 							{
 								PLF_LIST_DESTROY(node_pointer_allocator_type, (*this), &(current_node->next));
@@ -604,14 +620,14 @@ private:
 						for (node_pointer_type current_node = current_group->nodes; current_node != end; ++current_node)
 						{
 							#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-								if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
+								if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
 							#endif
 							{
 								PLF_LIST_DESTROY(element_allocator_type, element_allocator_pair, &(current_node->element));
 							}
 
 							#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-								if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+								if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 							#endif
 							{
 								PLF_LIST_DESTROY(node_pointer_allocator_type, (*this), &(current_node->next));
@@ -626,7 +642,7 @@ private:
 			}
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value || !std::is_trivially_destructible<node_pointer_type>::value)
 			#endif
 			{
 				if ((last_endpoint_node - last_endpoint_group->nodes) != last_endpoint_group->number_of_elements) // If there are erased nodes present in the group
@@ -634,7 +650,7 @@ private:
 					for (node_pointer_type current_node = last_endpoint_group->nodes; current_node != last_endpoint_node; ++current_node)
 					{
 						#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-							if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
+							if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
 						#endif
 						{
 							if (current_node->next != NULL) // is not part of free list ie. element has not already had it's destructor called
@@ -644,7 +660,7 @@ private:
 						}
 
 						#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-							if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+							if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 						#endif
 						{
 							PLF_LIST_DESTROY(node_pointer_allocator_type, (*this), &(current_node->next));
@@ -657,14 +673,14 @@ private:
 					for (node_pointer_type current_node = last_endpoint_group->nodes; current_node != last_endpoint_node; ++current_node)
 					{
 						#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-							if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
+							if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<element_type>::value)
 						#endif
 						{
 							PLF_LIST_DESTROY(element_allocator_type, element_allocator_pair, &(current_node->element));
 						}
 
 						#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-							if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+							if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 						#endif
 						{
 							PLF_LIST_DESTROY(node_pointer_allocator_type, (*this), &(current_node->next));
@@ -678,21 +694,21 @@ private:
 			last_endpoint_group->number_of_elements = 0;
 			last_searched_group = last_endpoint_group = block_pointer;
 		}
-
-
-
-		void expand_capacity(const size_type new_capacity) // used by add_new and append
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void expand_capacity(const size_type new_capacity) // used by add_new and append
 		{
 			group_pointer_type const old_block = block_pointer;
 			block_pointer = PLF_LIST_ALLOCATE(group_allocator_type, group_allocator_pair, new_capacity, 0);
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
 				{ // Dereferencing here in order to deal with smart pointer situations ie. obtaining the raw pointer from the smart pointer
 					std::memcpy(static_cast<void *>(&*block_pointer), static_cast<void *>(&*old_block), sizeof(group) * size); // static_cast or reinterpret_cast necessary to deal with GCC 8 warnings
 				}
 				#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-					else if PLF_LIST_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
+					else if PLF_LIST_CPP17_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
 					{
 						std::uninitialized_copy(std::make_move_iterator(old_block), std::make_move_iterator(old_block + size), block_pointer);
 					}
@@ -718,10 +734,10 @@ private:
 			PLF_LIST_DEALLOCATE(group_allocator_type, group_allocator_pair, old_block, group_allocator_pair.capacity);
 			group_allocator_pair.capacity = new_capacity;
 		}
-
-
-
-		void add_new(const group_size_type group_size)
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void add_new(const group_size_type group_size)
 		{
 			if (group_allocator_pair.capacity == size)
 			{
@@ -740,10 +756,10 @@ private:
 			element_allocator_pair.capacity += group_size;
 			++size;
 		}
-
-
-
-		void initialize(const group_size_type group_size) // For adding first group *only* when group vector is completely empty and block_pointer is NULL
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void initialize(const group_size_type group_size) // For adding first group *only* when group vector is completely empty and block_pointer is NULL
 		{
 			last_endpoint_group = block_pointer = last_searched_group = PLF_LIST_ALLOCATE(group_allocator_type, group_allocator_pair, 1, 0);
 			group_allocator_pair.capacity = 1;
@@ -757,10 +773,10 @@ private:
 			size = 1; // Doing these here instead of pre-construct to avoid need for a try-catch block
 			element_allocator_pair.capacity = group_size;
 		}
-
-
-
-		void remove(group_pointer_type const group_to_erase) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void remove(group_pointer_type const group_to_erase) PLF_LIST_NOEXCEPT
 		{
 			if (last_searched_group >= group_to_erase && last_searched_group != block_pointer)
 			{
@@ -772,12 +788,12 @@ private:
 			PLF_LIST_DESTROY(group_allocator_type, group_allocator_pair, group_to_erase);
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
 				{ // Dereferencing here in order to deal with smart pointer situations ie. obtaining the raw pointer from the smart pointer
 					std::memmove(static_cast<void *>(&*group_to_erase), static_cast<void *>(&*group_to_erase + 1), sizeof(group) * (--size - static_cast<size_type>(&*group_to_erase - &*block_pointer)));
 				}
 				#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-					else if PLF_LIST_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
+					else if PLF_LIST_CPP17_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
 					{
 						std::move(group_to_erase + 1, block_pointer + size--, group_to_erase);
 					}
@@ -793,10 +809,10 @@ private:
 				PLF_LIST_DESTROY(group_allocator_type, group_allocator_pair, back);
 			}
 		}
-
-
-
-		void move_to_back(group_pointer_type const group_to_erase)
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void move_to_back(group_pointer_type const group_to_erase)
 		{
 			if (last_searched_group >= group_to_erase && last_searched_group != block_pointer)
 			{
@@ -806,20 +822,20 @@ private:
 			group *temp_group = PLF_LIST_ALLOCATE(group_allocator_type, group_allocator_pair, 1, NULL);
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
 				{
 					std::memcpy(static_cast<void *>(&*temp_group), static_cast<void *>(&*group_to_erase), sizeof(group));
 					std::memmove(static_cast<void *>(&*group_to_erase), static_cast<void *>(&*group_to_erase + 1), sizeof(group) * ((size - 1) - static_cast<size_type>(&*group_to_erase - &*block_pointer)));
 					std::memcpy(static_cast<void *>(&*(block_pointer + size - 1)), static_cast<void *>(&*temp_group), sizeof(group));
 				}
 				#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-					else if PLF_LIST_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
+					else if PLF_LIST_CPP17_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
 					{
 						PLF_LIST_CONSTRUCT(group_allocator_type, group_allocator_pair, temp_group, std::move(*group_to_erase));
 						std::move(group_to_erase + 1, block_pointer + size, group_to_erase);
 						*(block_pointer + size - 1) = std::move(*temp_group);
 
-						if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+						if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 						{
 							PLF_LIST_DESTROY(group_allocator_type, group_allocator_pair, temp_group);
 						}
@@ -840,10 +856,10 @@ private:
 
 			PLF_LIST_DEALLOCATE(group_allocator_type, group_allocator_pair, temp_group, 1);
 		}
-
-
-
-		group_pointer_type get_nearest_freelist_group(const node_pointer_type location_node) PLF_LIST_NOEXCEPT // In working implementation this cannot throw
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR group_pointer_type get_nearest_freelist_group(const node_pointer_type location_node) PLF_LIST_NOEXCEPT // In working implementation this cannot throw
 		{
 			const group_pointer_type beyond_end_group = last_endpoint_group + 1;
 			group_pointer_type left = last_searched_group - 1, right = last_searched_group + 1, freelist_group = NULL;
@@ -1021,13 +1037,13 @@ private:
 
 			// Will never reach here on a functioning implementation
 		}
-
-
-
-		void swap(group_vector &source) PLF_LIST_NOEXCEPT_SWAP(group_allocator_type)
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void swap(group_vector &source) PLF_LIST_NOEXCEPT_SWAP(group_allocator_type)
 		{
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivial<group_pointer_type>::value) // if pointer type is trivial we can just copy using memcpy - faster - avoids constructors/destructors etc
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivial<group_pointer_type>::value) // if pointer type is trivial we can just copy using memcpy - faster - avoids constructors/destructors etc
 				{
 					char temp[sizeof(group_vector)];
 					std::memcpy(static_cast<void *>(&temp), static_cast<void *>(this), sizeof(group_vector));
@@ -1055,10 +1071,10 @@ private:
 				source.group_allocator_pair.capacity = swap_capacity;
 			}
 		}
-
-
-
-		void trim_trailing_groups() PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void trim_trailing_groups() PLF_LIST_NOEXCEPT
 		{
 			const group_pointer_type beyond_last = block_pointer + size;
 
@@ -1070,10 +1086,10 @@ private:
 
 			size -= static_cast<size_type>(beyond_last - (last_endpoint_group + 1));
 		}
-
-
-
-		void append(group_vector &source)
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR void append(group_vector &source)
 		{
 			source.trim_trailing_groups();
 			trim_trailing_groups();
@@ -1084,12 +1100,12 @@ private:
 			}
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_trivially_copyable<node_pointer_type>::value && std::is_trivially_destructible<node_pointer_type>::value)
 				{ // &* in order to deal with smart pointer situations ie. obtaining the raw pointer from the smart pointer
 					std::memcpy(static_cast<void *>(&*block_pointer + size), static_cast<void *>(&*source.block_pointer), sizeof(group) * source.size);
 				}
 				#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-					else if PLF_LIST_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
+					else if PLF_LIST_CPP17_CONSTEXPR (std::is_move_constructible<node_pointer_type>::value)
 					{
 						std::uninitialized_copy(std::make_move_iterator(source.block_pointer), std::make_move_iterator(source.block_pointer + source.size), block_pointer + size);
 					}
@@ -1149,96 +1165,96 @@ public:
 		typedef typename choose<is_const, typename list::const_reference, typename list::reference>::type	reference;
 
 		friend class list;
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator == (const list_iterator rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator == (const list_iterator rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer == rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator == (const list_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator == (const list_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer == rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator != (const list_iterator rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator != (const list_iterator rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer != rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator != (const list_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator != (const list_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer != rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE reference operator * () const
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE reference operator * () const
 		{
 			return node_pointer->element;
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE pointer operator -> () const
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE pointer operator -> () const
 		{
 			return &(node_pointer->element);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE list_iterator & operator ++ () PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE list_iterator & operator ++ () PLF_LIST_NOEXCEPT
 		{
 			assert(node_pointer != NULL); // covers uninitialised list_iterator
 			node_pointer = node_pointer->next;
 			return *this;
 		}
-
-
-
-		inline list_iterator operator ++(int) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_iterator operator ++(int) PLF_LIST_NOEXCEPT
 		{
 			const list_iterator copy(*this);
 			++*this;
 			return copy;
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE list_iterator & operator -- () PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE list_iterator & operator -- () PLF_LIST_NOEXCEPT
 		{
 			assert(node_pointer != NULL); // covers uninitialised list_iterator
 			node_pointer = node_pointer->previous;
 			return *this;
 		}
-
-
-
-		inline list_iterator operator -- (int) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_iterator operator -- (int) PLF_LIST_NOEXCEPT
 		{
 			const list_iterator copy(*this);
 			--*this;
 			return copy;
 		}
-
-
-
-		inline list_iterator & operator = (const list_iterator &rh) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator &rh) PLF_LIST_NOEXCEPT
 		{
 			node_pointer = rh.node_pointer;
 			return *this;
 		}
-
-
-
-		inline list_iterator & operator = (const list_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
 		{
 			node_pointer = rh.node_pointer;
 			return *this;
@@ -1247,38 +1263,38 @@ public:
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			inline list_iterator & operator = (const list_iterator &&rh) PLF_LIST_NOEXCEPT
+			PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator &&rh) PLF_LIST_NOEXCEPT
 			{
 				assert (&rh != this);
 				node_pointer = std::move(rh.node_pointer);
 				return *this;
 			}
-
-
-			inline list_iterator & operator = (const list_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
+		
+		
+			PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
 			{
 				node_pointer = std::move(rh.node_pointer);
 				return *this;
 			}
 		#endif
-
-
-
-		list_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
-
-		list_iterator(const list_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
-
-		list_iterator(const list_iterator<!is_const> &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
+		
+		
+		
+		PLF_LIST_CONSTEXPR list_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
+		
+		PLF_LIST_CONSTEXPR list_iterator(const list_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
+		
+		PLF_LIST_CONSTEXPR list_iterator(const list_iterator<!is_const> &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			list_iterator (const list_iterator &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
-
-			list_iterator(const list_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
+			PLF_LIST_CONSTEXPR list_iterator (const list_iterator &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
+		
+			PLF_LIST_CONSTEXPR list_iterator(const list_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
 		#endif
 
 	private:
-
-		list_iterator (const node_pointer_type node_p) PLF_LIST_NOEXCEPT: node_pointer(node_p) {}
+		
+		PLF_LIST_CONSTEXPR list_iterator (const node_pointer_type node_p) PLF_LIST_NOEXCEPT: node_pointer(node_p) {}
 	};
 
 
@@ -1297,95 +1313,95 @@ public:
 		typedef typename choose<is_const, typename list::const_reference, typename list::reference>::type	reference;
 
 		friend class list;
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator == (const list_reverse_iterator rh) const PLF_LIST_NOEXCEPT
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator == (const list_reverse_iterator rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer == rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator == (const list_reverse_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator == (const list_reverse_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer == rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator != (const list_reverse_iterator rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator != (const list_reverse_iterator rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer != rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE bool operator != (const list_reverse_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE bool operator != (const list_reverse_iterator<!is_const> rh) const PLF_LIST_NOEXCEPT
 		{
 			return (node_pointer != rh.node_pointer);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE reference operator * () const
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE reference operator * () const
 		{
 			return node_pointer->element;
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE pointer operator -> () const
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline PLF_LIST_FORCE_INLINE pointer operator -> () const
 		{
 			return &(node_pointer->element);
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE list_reverse_iterator & operator ++ () PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE list_reverse_iterator & operator ++ () PLF_LIST_NOEXCEPT
 		{
 			assert(node_pointer != NULL); // covers uninitialised list_reverse_iterator
 			node_pointer = node_pointer->previous;
 			return *this;
 		}
-
-
-
-		inline list_reverse_iterator operator ++(int) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator operator ++(int) PLF_LIST_NOEXCEPT
 		{
 			const list_reverse_iterator copy(*this);
 			++*this;
 			return copy;
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE list_reverse_iterator & operator -- () PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE list_reverse_iterator & operator -- () PLF_LIST_NOEXCEPT
 		{
 			assert(node_pointer != NULL);
 			node_pointer = node_pointer->next;
 			return *this;
 		}
-
-
-
-		inline list_reverse_iterator operator -- (int) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator operator -- (int) PLF_LIST_NOEXCEPT
 		{
 			const list_reverse_iterator copy(*this);
 			--*this;
 			return copy;
 		}
-
-
-
-		inline list_reverse_iterator & operator = (const list_reverse_iterator &rh) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator &rh) PLF_LIST_NOEXCEPT
 		{
 			node_pointer = rh.node_pointer;
 			return *this;
 		}
-
-
-
-		inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
 		{
 			node_pointer = rh.node_pointer;
 			return *this;
@@ -1394,47 +1410,47 @@ public:
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			inline list_reverse_iterator & operator = (const list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT
+			PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT
 			{
 				assert (&rh != this);
 				node_pointer = std::move(rh.node_pointer);
 				return *this;
 			}
-
-
-			inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
+		
+		
+			PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
 			{
 				node_pointer = std::move(rh.node_pointer);
 				return *this;
 			}
 		#endif
-
-
-
-		inline typename list::iterator base() const PLF_LIST_NOEXCEPT
+		
+		
+		
+		PLF_LIST_CONSTEXPR inline typename list::iterator base() const PLF_LIST_NOEXCEPT
 		{
 			return typename list::iterator(node_pointer->next);
 		}
-
-
-
-		list_reverse_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
-
-		list_reverse_iterator(const list_reverse_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
+		
+		
+		
+		PLF_LIST_CONSTEXPR list_reverse_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
+		
+		PLF_LIST_CONSTEXPR list_reverse_iterator(const list_reverse_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			list_reverse_iterator (const list_reverse_iterator &&source) PLF_LIST_NOEXCEPT:
+			PLF_LIST_CPP14_CONSTEXPR list_reverse_iterator (const list_reverse_iterator &&source) PLF_LIST_NOEXCEPT:
 				node_pointer(std::move(source.node_pointer))
 			{
 				assert(&source != this);
 			}
-
-			list_reverse_iterator (const list_reverse_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
+		
+			PLF_LIST_CONSTEXPR list_reverse_iterator (const list_reverse_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
 		#endif
 
 	private:
-
-		list_reverse_iterator (const node_pointer_type node_p) PLF_LIST_NOEXCEPT: node_pointer(node_p) {}
+		
+		PLF_LIST_CONSTEXPR list_reverse_iterator (const node_pointer_type node_p) PLF_LIST_NOEXCEPT: node_pointer(node_p) {}
 	};
 
 
@@ -1468,13 +1484,13 @@ private:
 	struct ebco_pair1 : node_pointer_allocator_type // Packaging the group allocator with least-used member variables, for empty-base-class optimisation
 	{
 		size_type total_number_of_elements;
-		explicit ebco_pair1(const size_type total_num_elements) PLF_LIST_NOEXCEPT: total_number_of_elements(total_num_elements) {}
+		PLF_LIST_CONSTEXPR explicit ebco_pair1(const size_type total_num_elements) PLF_LIST_NOEXCEPT: total_number_of_elements(total_num_elements) {}
 	}		node_pointer_allocator_pair;
 
 	struct ebco_pair2 : node_allocator_type
 	{
 		size_type number_of_erased_nodes;
-		explicit ebco_pair2(const size_type num_erased_nodes) PLF_LIST_NOEXCEPT: number_of_erased_nodes(num_erased_nodes) {}
+		PLF_LIST_CONSTEXPR explicit ebco_pair2(const size_type num_erased_nodes) PLF_LIST_NOEXCEPT: number_of_erased_nodes(num_erased_nodes) {}
 	}		node_allocator_pair;
 
 
@@ -1482,8 +1498,8 @@ private:
 public:
 
 	// Default constructor:
-
-	list() PLF_LIST_NOEXCEPT:
+	
+	PLF_LIST_CONSTEXPR list() PLF_LIST_NOEXCEPT:
 		element_allocator_type(element_allocator_type()),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1496,8 +1512,8 @@ public:
 
 
 	// Allocator-extended constructor:
-
-	explicit list(const element_allocator_type &alloc):
+	
+	PLF_LIST_CONSTEXPR explicit list(const element_allocator_type &alloc):
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1510,8 +1526,8 @@ public:
 
 
 	// Copy constructor:
-
-	list(const list &source):
+	
+	PLF_LIST_CPP14_CONSTEXPR list(const list &source):
 		element_allocator_type(source),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1527,8 +1543,8 @@ public:
 
 
 	// Allocator-extended copy constructor:
-
-	list(const list &source, const allocator_type &alloc):
+	
+	PLF_LIST_CPP14_CONSTEXPR list(const list &source, const allocator_type &alloc):
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1545,8 +1561,8 @@ public:
 
 	#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
 		// Move constructor:
-
-		list(list &&source) PLF_LIST_NOEXCEPT:
+	
+		PLF_LIST_CPP14_CONSTEXPR list(list &&source) PLF_LIST_NOEXCEPT:
 			element_allocator_type(source),
 			groups(std::move(source.groups)),
 			end_node(std::move(source.end_node)),
@@ -1565,8 +1581,8 @@ public:
 
 
 		// Allocator-extended move constructor:
-
-		list(list &&source, const allocator_type &alloc):
+	
+		PLF_LIST_CPP14_CONSTEXPR list(list &&source, const allocator_type &alloc):
 			element_allocator_type(alloc),
 			groups(std::move(source.groups)),
 			end_node(std::move(source.end_node)),
@@ -1586,8 +1602,8 @@ public:
 
 
 	// Fill constructor:
-
-	list(const size_type fill_number, const element_type &element, const element_allocator_type &alloc = element_allocator_type()):
+	
+	PLF_LIST_CPP14_CONSTEXPR list(const size_type fill_number, const element_type &element, const element_allocator_type &alloc = element_allocator_type()):
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1605,7 +1621,7 @@ public:
 	// Range constructor:
 
 	template<typename iterator_type>
-	list(const typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type &first, const iterator_type &last, const element_allocator_type &alloc = element_allocator_type()):
+	PLF_LIST_CPP14_CONSTEXPR list(const typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type &first, const iterator_type &last, const element_allocator_type &alloc = element_allocator_type()):
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1622,7 +1638,7 @@ public:
 	// Initializer-list constructor:
 
 	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
-		list(const std::initializer_list<element_type> &element_list, const element_allocator_type &alloc = element_allocator_type()):
+	PLF_LIST_CPP14_CONSTEXPR list(const std::initializer_list<element_type> &element_list, const element_allocator_type &alloc = element_allocator_type()):
 			element_allocator_type(alloc),
 			end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 			last_endpoint(NULL),
@@ -1636,119 +1652,117 @@ public:
 		}
 
 	#endif
-
-
-
-	~list() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP20_CONSTEXPR ~list() PLF_LIST_NOEXCEPT
 	{
 		groups.destroy_all_data(last_endpoint);
 	}
-
-
-
-	inline iterator begin() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline iterator begin() PLF_LIST_NOEXCEPT
 	{
 		return begin_iterator;
 	}
-
-
-
-	inline const_iterator begin() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_iterator begin() const PLF_LIST_NOEXCEPT
 	{
 		return begin_iterator;
 	}
-
-
-
-	inline iterator end() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline iterator end() PLF_LIST_NOEXCEPT
 	{
 		return end_iterator;
 	}
-
-
-
-	inline const_iterator end() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_iterator end() const PLF_LIST_NOEXCEPT
 	{
 		return end_iterator;
 	}
-
-
-
-	inline const_iterator cbegin() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_iterator cbegin() const PLF_LIST_NOEXCEPT
 	{
 		return const_iterator(begin_iterator.node_pointer);
 	}
-
-
-
-	inline const_iterator cend() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_iterator cend() const PLF_LIST_NOEXCEPT
 	{
 		return const_iterator(end_iterator.node_pointer);
 	}
-
-
-
- 	inline reverse_iterator rbegin() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline reverse_iterator rbegin() const PLF_LIST_NOEXCEPT
  	{
  		return reverse_iterator(end_node.previous);
  	}
-
-
-
- 	inline reverse_iterator rend() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline reverse_iterator rend() const PLF_LIST_NOEXCEPT
  	{
  		return reverse_iterator(end_iterator.node_pointer);
  	}
-
-
-
- 	inline const_reverse_iterator crbegin() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_reverse_iterator crbegin() const PLF_LIST_NOEXCEPT
  	{
  		return const_reverse_iterator(end_node.previous);
  	}
-
-
-
- 	inline const_reverse_iterator crend() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_reverse_iterator crend() const PLF_LIST_NOEXCEPT
  	{
  		return const_reverse_iterator(end_iterator.node_pointer);
  	}
-
-
-
-	inline reference front()
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline reference front()
 	{
 		assert(begin_iterator.node_pointer != &end_node);
 		return begin_iterator.node_pointer->element;
 	}
-
-
-
-	inline const_reference front() const
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_reference front() const
 	{
-		assert(begin_iterator.node_pointer != &end_node);
-		return begin_iterator.node_pointer->element;
+		return assert(begin_iterator.node_pointer != &end_node), begin_iterator.node_pointer->element;
 	}
-
-
-
-	inline reference back()
-	{
-		assert(end_node.previous != &end_node);
-		return end_node.previous->element;
-	}
-
-
-
-	inline const_reference back() const
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR  reference back()
 	{
 		assert(end_node.previous != &end_node);
 		return end_node.previous->element;
 	}
-
-
-
-	void clear() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline const_reference back() const
+	{
+		return assert(end_node.previous != &end_node), end_node.previous->element;
+	}
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void clear() PLF_LIST_NOEXCEPT
 	{
 		if (last_endpoint == NULL)
 		{
@@ -1771,9 +1785,9 @@ public:
 
 
 private:
-
-
-	void reset() PLF_LIST_NOEXCEPT
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void reset() PLF_LIST_NOEXCEPT
 	{
 		groups.destroy_all_data(last_endpoint);
 		last_endpoint = NULL;
@@ -1783,14 +1797,112 @@ private:
 		node_pointer_allocator_pair.total_number_of_elements = 0;
 		node_allocator_pair.number_of_erased_nodes = 0;
 	}
+	
+	#ifdef PLF_LIST_VARIADICS_SUPPORT
+		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
+			template <typename ...Args>
+			PLF_LIST_CPP14_CONSTEXPR 
+			typename std::enable_if<std::is_nothrow_constructible<element_type, Args...>::value>::type 
+			construct_node(Args&&... args)
+			{
+				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, 
+													 end_iterator.node_pointer, end_iterator.node_pointer, std::forward<Args> (args)...);
+			}
 
-
-
+			template <typename ...Args>
+			PLF_LIST_CPP20_CONSTEXPR 
+			typename std::enable_if<! std::is_nothrow_constructible<element_type, Args...>::value>::type 
+			construct_node(Args&&... args)
+			{
+				try
+				{
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer,
+														 end_iterator.node_pointer, std::forward<Args> (args)...);
+				}
+				catch (...)
+				{
+					reset();
+					throw;
+				}
+			}
+		#endif
+	#else
+		// copies
+		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
+			template <typename Node = node>
+			PLF_LIST_CPP14_CONSTEXPR typename std::enable_if<std::is_nothrow_copy_constructible<Node>::value>::type
+			construct_node(const element_type &element) PLF_LIST_NOEXCEPT
+			{
+				#ifdef PLF_LIST_VARIADICS_SUPPORT
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
+				#else
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
+				#endif
+			};
+		
+			template <typename Node = node>
+			PLF_LIST_CPP20_CONSTEXPR typename std::enable_if<! std::is_nothrow_copy_constructible<Node>::value>::type
+		#else
+			void
+		#endif
+		construct_node(const element_type &element) PLF_LIST_NOEXCEPT
+		{
+			try
+			{
+				#ifdef PLF_LIST_VARIADICS_SUPPORT
+				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
+				#else
+				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
+				#endif
+			}
+			catch (...)
+			{
+				reset();
+				throw;
+			}
+		};
+	
+		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
+				template <typename Node = node>
+				PLF_LIST_CPP14_CONSTEXPR typename std::enable_if<std::is_nothrow_move_constructible<Node>::value>::type
+				construct_node(element_type &&element) PLF_LIST_NOEXCEPT
+				{
+					#ifdef PLF_LIST_VARIADICS_SUPPORT
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move (element));
+					#else
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move (element)));
+					#endif
+				};
+			
+				template <typename Node = node>
+				PLF_LIST_CPP20_CONSTEXPR typename std::enable_if<! std::is_nothrow_move_constructible<Node>::value>::type
+			#else
+				void
+			#endif
+			construct_node(element_type &&element) PLF_LIST_NOEXCEPT
+			{
+				try
+				{
+					#ifdef PLF_LIST_VARIADICS_SUPPORT
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move (element));
+					#else
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move (element)));
+					#endif
+				}
+				catch (...)
+				{
+					reset();
+					throw;
+				}
+			};
+		#endif
+	#endif
 
 public:
-
-
-	iterator insert(const iterator it, const element_type &element)
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, const element_type &element)
 	{
 		if (last_endpoint != NULL) // ie. list is not empty
 		{
@@ -1867,33 +1979,8 @@ public:
 			groups.last_endpoint_group->number_of_elements = 1;
 			end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
 			node_pointer_allocator_pair.total_number_of_elements = 1;
-
-			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_nothrow_copy_constructible<node>::value) // Avoid try-catch code generation
-				{
-					#ifdef PLF_LIST_VARIADICS_SUPPORT
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
-					#else
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
-					#endif
-				}
-				else
-			#endif
-			{
-				try
-				{
-					#ifdef PLF_LIST_VARIADICS_SUPPORT
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
-					#else
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
-					#endif
-				}
-				catch (...)
-				{
-					reset();
-					throw;
-				}
-			}
+			
+			construct_node (element);
 
 			return begin_iterator;
 		}
@@ -1901,14 +1988,14 @@ public:
 
 
 
-	inline PLF_LIST_FORCE_INLINE void push_back(const element_type &element)
+	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_back(const element_type &element)
 	{
 		insert(end_iterator, element);
 	}
-
-
-
-	inline PLF_LIST_FORCE_INLINE void push_front(const element_type &element)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_front(const element_type &element)
 	{
 		insert(begin_iterator, element);
 	}
@@ -1916,7 +2003,7 @@ public:
 
 
 	#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-		iterator insert(const iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
 		{
 			if (last_endpoint != NULL)
 			{
@@ -1993,48 +2080,23 @@ public:
 				groups.last_endpoint_group->number_of_elements = 1;
 				end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
 				node_pointer_allocator_pair.total_number_of_elements = 1;
-
-				#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-					if PLF_LIST_CONSTEXPR (std::is_nothrow_move_constructible<node>::value)
-					{
-						#ifdef PLF_LIST_VARIADICS_SUPPORT
-							PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move(element));
-						#else
-							PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move(element)));
-						#endif
-					}
-					else
-				#endif
-				{
-					try
-					{
-						#ifdef PLF_LIST_VARIADICS_SUPPORT
-							PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move(element));
-						#else
-							PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move(element)));
-						#endif
-					}
-					catch (...)
-					{
-						reset();
-						throw;
-					}
-				}
+				
+				construct_node (std::move (element));
 
 				return begin_iterator;
 			}
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE void push_back(element_type &&element)
+	
+	
+	
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_back(element_type &&element)
 		{
 			insert(end_iterator, std::move(element));
 		}
-
-
-
-		inline PLF_LIST_FORCE_INLINE void push_front(element_type &&element)
+	
+	
+	
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_front(element_type &&element)
 		{
 			insert(begin_iterator, std::move(element));
 		}
@@ -2045,7 +2107,7 @@ public:
 
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		template<typename... arguments>
-		iterator emplace(const iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
+		PLF_LIST_CPP14_CONSTEXPR iterator emplace(const iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
 		{
 			if (last_endpoint != NULL)
 			{
@@ -2114,25 +2176,8 @@ public:
 				groups.last_endpoint_group->number_of_elements = 1;
 				end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
 				node_pointer_allocator_pair.total_number_of_elements = 1;
-
-				#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-					if PLF_LIST_CONSTEXPR (std::is_nothrow_constructible<element_type, arguments ...>::value)
-					{
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::forward<arguments>(parameters)...);
-					}
-					else
-				#endif
-				{
-					try
-					{
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::forward<arguments>(parameters)...);
-					}
-					catch (...)
-					{
-						reset();
-						throw;
-					}
-				}
+				
+				construct_node (std::forward<arguments>(parameters)...);
 
 				return begin_iterator;
 			}
@@ -2141,7 +2186,7 @@ public:
 
 
 		template<typename... arguments>
-		inline PLF_LIST_FORCE_INLINE reference emplace_back(arguments &&... parameters)
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE reference emplace_back(arguments &&... parameters)
 		{
 			return (emplace(end_iterator, std::forward<arguments>(parameters)...)).node_pointer->element;
 		}
@@ -2149,7 +2194,7 @@ public:
 
 
 		template<typename... arguments>
-		inline PLF_LIST_FORCE_INLINE reference emplace_front(arguments &&... parameters)
+		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE reference emplace_front(arguments &&... parameters)
 		{
 			return (emplace(begin_iterator, std::forward<arguments>(parameters)...)).node_pointer->element;
 		}
@@ -2160,8 +2205,8 @@ public:
 
 
 private:
-
-	void group_fill_position(const element_type &element, group_size_type number_of_elements, node_pointer_type const position)
+	
+	PLF_LIST_CPP20_CONSTEXPR void group_fill_position(const element_type &element, group_size_type number_of_elements, node_pointer_type const position)
 	{
 		position->previous->next = last_endpoint;
 		groups.last_endpoint_group->number_of_elements += number_of_elements;
@@ -2170,7 +2215,7 @@ private:
 		do
 		{
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_nothrow_copy_constructible<element_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_nothrow_copy_constructible<element_type>::value)
 				{
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
 						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, last_endpoint + 1, previous, element);
@@ -2210,8 +2255,8 @@ private:
 public:
 
 	// Fill insert
-
-	iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
+	
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
 	{
 		if (number_of_elements == 0)
 		{
@@ -2364,7 +2409,7 @@ public:
 	// Range insert
 
 	template <class iterator_type>
-	iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
 	{
 		if (first == last)
 		{
@@ -2386,7 +2431,7 @@ public:
 	// Initializer-list insert
 
 	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
-		inline iterator insert(const iterator it, const std::initializer_list<element_type> &element_list)
+		PLF_LIST_CPP14_CONSTEXPR inline iterator insert(const iterator it, const std::initializer_list<element_type> &element_list)
 		{ // use range insert:
 			return insert(it, element_list.begin(), element_list.end());
 		}
@@ -2395,8 +2440,8 @@ public:
 
 
 private:
-
-	inline PLF_LIST_FORCE_INLINE void destroy_all_node_pointers(group_pointer_type const group_to_process, const node_pointer_type beyond_end_node) PLF_LIST_NOEXCEPT
+	
+	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void destroy_all_node_pointers(group_pointer_type const group_to_process, const node_pointer_type beyond_end_node) PLF_LIST_NOEXCEPT
 	{
 		for (node_pointer_type current_node = group_to_process->nodes; current_node != beyond_end_node; ++current_node)
 		{
@@ -2411,15 +2456,15 @@ public:
 
 
 	// Single erase:
-
-	iterator erase(const const_iterator it) // if uninitialized/invalid iterator supplied, function could generate an exception, hence no noexcept
+	
+	PLF_LIST_CPP14_CONSTEXPR iterator erase(const const_iterator it) // if uninitialized/invalid iterator supplied, function could generate an exception, hence no noexcept
 	{
 		assert(node_pointer_allocator_pair.total_number_of_elements != 0);
 		assert(it.node_pointer != NULL);
 		assert(it.node_pointer != end_iterator.node_pointer);
 
 		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-			if PLF_LIST_CONSTEXPR (!(std::is_trivially_destructible<element_type>::value))
+			if PLF_LIST_CPP17_CONSTEXPR (!(std::is_trivially_destructible<element_type>::value))
 		#endif
 		{
 			PLF_LIST_DESTROY(element_allocator_type, (*this), &(it.node_pointer->element)); // Destruct element
@@ -2494,7 +2539,7 @@ public:
 			node_allocator_pair.number_of_erased_nodes -= group_size;
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 			#endif
 			{
 				destroy_all_node_pointers(node_group, node_group->beyond_end);
@@ -2516,7 +2561,7 @@ public:
 		else // clear back group, leave trailing
 		{
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 			#endif
 			{
 				destroy_all_node_pointers(node_group, last_endpoint);
@@ -2543,8 +2588,8 @@ public:
 
 
 	// Range-erase:
-
-	inline iterator erase(const_iterator iterator1, const const_iterator iterator2)  // if uninitialized/invalid iterator supplied, function could generate an exception
+	
+	PLF_LIST_CPP14_CONSTEXPR inline iterator erase(const_iterator iterator1, const const_iterator iterator2)  // if uninitialized/invalid iterator supplied, function could generate an exception
 	{
 		while (iterator1 != iterator2)
 		{
@@ -2553,24 +2598,24 @@ public:
 		
 		return iterator2;
 	}
-
-
-
-	inline void pop_back() // Exception will occur on empty list
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline void pop_back() // Exception will occur on empty list
 	{
 		erase(iterator(end_node.previous));
 	}
-
-
-
-	inline void pop_front() // Exception will occur on empty list
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline void pop_front() // Exception will occur on empty list
 	{
 		erase(begin_iterator);
 	}
-
-
-
-	inline list & operator = (const list &source)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline list & operator = (const list &source)
 	{
 		assert (&source != this);
 
@@ -2585,7 +2630,7 @@ public:
 
 	#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
 		// Move assignment
-		list & operator = (list &&source) PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(allocator_type)
+		PLF_LIST_CPP14_CONSTEXPR list & operator = (list &&source) PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(allocator_type)
 		{
 			assert (&source != this);
 
@@ -2606,10 +2651,10 @@ public:
 			return *this;
 		}
 	#endif
-
-
-
-	bool operator == (const list &rh) const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR bool operator == (const list &rh) const PLF_LIST_NOEXCEPT
 	{
 		assert (this != &rh);
 
@@ -2630,31 +2675,31 @@ public:
 
 		return true;
 	}
-
-
-
-	inline bool operator != (const list &rh) const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline bool operator != (const list &rh) const PLF_LIST_NOEXCEPT
 	{
 		return !(*this == rh);
 	}
-
-
-
-	inline bool empty() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline bool empty() const PLF_LIST_NOEXCEPT
 	{
 		return node_pointer_allocator_pair.total_number_of_elements == 0;
 	}
-
-
-
-	inline size_type size() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline size_type size() const PLF_LIST_NOEXCEPT
 	{
 		return node_pointer_allocator_pair.total_number_of_elements;
 	}
-
-
-
-	inline size_type max_size() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline size_type max_size() const PLF_LIST_NOEXCEPT
 	{
 		#ifdef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
       	return std::allocator_traits<element_allocator_type>::max_size(*this);
@@ -2662,17 +2707,17 @@ public:
       	return element_allocator_type::max_size();
       #endif
 	}
-
-
-
-	inline size_type capacity() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline size_type capacity() const PLF_LIST_NOEXCEPT
 	{
 		return groups.element_allocator_pair.capacity;
 	}
-
-
-
-	inline size_type approximate_memory_use() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline size_type approximate_memory_use() const PLF_LIST_NOEXCEPT
 	{
 		return static_cast<size_type>(sizeof(*this) + (groups.element_allocator_pair.capacity * sizeof(node)) + (sizeof(group) * groups.group_allocator_pair.capacity));
 	}
@@ -2684,7 +2729,7 @@ private:
 
 	struct less
 	{
-		inline bool operator() (const element_type &a, const element_type &b) const PLF_LIST_NOEXCEPT
+		PLF_LIST_CONSTEXPR inline bool operator() (const element_type &a, const element_type &b) const PLF_LIST_NOEXCEPT
 		{
 			return a < b;
 		}
@@ -2697,15 +2742,15 @@ private:
 	struct sort_dereferencer
 	{
 		comparison_function stored_instance;
-
-		explicit sort_dereferencer(const comparison_function &function_instance):
+		
+		PLF_LIST_CONSTEXPR explicit sort_dereferencer(const comparison_function &function_instance):
 			stored_instance(function_instance)
 		{}
-
-		sort_dereferencer() PLF_LIST_NOEXCEPT
+		
+		PLF_LIST_CONSTEXPR sort_dereferencer() PLF_LIST_NOEXCEPT
 		{}
-
-		inline bool operator() (const node_pointer_type first, const node_pointer_type second)
+		
+		PLF_LIST_CPP14_CONSTEXPR inline bool operator() (const node_pointer_type first, const node_pointer_type second)
 		{
 			return stored_instance(first->element, second->element);
 		}
@@ -2717,7 +2762,7 @@ public:
 
 
 	template <class comparison_function>
-	void sort(comparison_function compare)
+	PLF_LIST_CPP14_CONSTEXPR void sort(comparison_function compare)
 	{
 		if (node_pointer_allocator_pair.total_number_of_elements < 2)
 		{
@@ -2794,7 +2839,7 @@ public:
 			(*node_pointer)->previous = *(node_pointer - 1);
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+				if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 			#endif
 			{
 				PLF_LIST_DESTROY(node_pointer_allocator_type, node_pointer_allocator_pair, node_pointer - 1);
@@ -2802,7 +2847,7 @@ public:
 		}
 
 		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-			if PLF_LIST_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
+			if PLF_LIST_CPP17_CONSTEXPR (!std::is_trivially_destructible<node_pointer_type>::value)
 		#endif
 		{
 			PLF_LIST_DESTROY(node_pointer_allocator_type, node_pointer_allocator_pair, back);
@@ -2810,17 +2855,17 @@ public:
 
 		PLF_LIST_DEALLOCATE(node_pointer_allocator_type, node_pointer_allocator_pair, node_pointers, node_pointer_allocator_pair.total_number_of_elements);
 	}
-
-
-
-	inline void sort()
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline void sort()
 	{
 		sort(less());
 	}
-
-
-
-	void reorder(const iterator position, const iterator first, const iterator last) PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void reorder(const iterator position, const iterator first, const iterator last) PLF_LIST_NOEXCEPT
 	{
 		// To avoid pointer aliasing and subsequently increase performance via simultaneous assignments:
 		const node_pointer_type first_previous = first.node_pointer->previous;
@@ -2841,17 +2886,17 @@ public:
 			begin_iterator = first;
 		}
 	}
-
-
-
-	inline void reorder(const iterator position, const iterator location) PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline void reorder(const iterator position, const iterator location) PLF_LIST_NOEXCEPT
 	{
 		reorder(position, location, location);
 	}
-
-
-
-	void reserve(size_type reserve_amount)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void reserve(size_type reserve_amount)
 	{
 		if (reserve_amount == 0 || reserve_amount <= groups.element_allocator_pair.capacity)
 		{
@@ -2938,17 +2983,17 @@ public:
 
 		groups.last_endpoint_group = groups.block_pointer + last_endpoint_group_number;
 	}
-
-
-
-	inline PLF_LIST_FORCE_INLINE void free_unused_memory() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void free_unused_memory() PLF_LIST_NOEXCEPT
 	{
 		groups.trim_trailing_groups();
 	}
-
-
-
-	void shrink_to_fit()
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void shrink_to_fit()
 	{
 		if ((groups.block_pointer == NULL) | (node_pointer_allocator_pair.total_number_of_elements == groups.element_allocator_pair.capacity)) // if list is uninitialized or full
 		{
@@ -2970,7 +3015,7 @@ public:
 		 	temp.reserve(node_pointer_allocator_pair.total_number_of_elements);
 
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
-				if PLF_LIST_CONSTEXPR (std::is_move_assignable<element_type>::value && std::is_move_constructible<element_type>::value) // move elements if possible, otherwise copy them
+				if PLF_LIST_CPP17_CONSTEXPR (std::is_move_assignable<element_type>::value && std::is_move_constructible<element_type>::value) // move elements if possible, otherwise copy them
 				{
 					temp.insert(temp.end_iterator, std::make_move_iterator(begin_iterator), std::make_move_iterator(end_iterator));
 				}
@@ -2991,8 +3036,8 @@ public:
 
 
 private:
-
-	void append_process(list &source) // used by merge and splice
+	
+	PLF_LIST_CPP14_CONSTEXPR void append_process(list &source) // used by merge and splice
 	{
 		if (last_endpoint != groups.last_endpoint_group->beyond_end)
 		{	// Add unused nodes to group's free list
@@ -3017,8 +3062,8 @@ private:
 
 
 public:
-
-	void splice(iterator position, list &source)
+	
+	PLF_LIST_CPP14_CONSTEXPR void splice(iterator position, list &source)
 	{
 		assert(&source != this);
 
@@ -3055,16 +3100,16 @@ public:
 
 
 	template <class comparison_function>
-	void merge(list &source, comparison_function compare)
+	PLF_LIST_CPP14_CONSTEXPR void merge(list &source, comparison_function compare)
 	{
 		assert(&source != this);
 		splice((source.node_pointer_allocator_pair.total_number_of_elements >= node_pointer_allocator_pair.total_number_of_elements) ? end_iterator : begin_iterator, source);
 		sort(compare);
 	}
-
-
-
-	void merge(list &source)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void merge(list &source)
 	{
 		assert(&source != this);
 
@@ -3118,10 +3163,10 @@ public:
 
 		append_process(source);
 	}
-
-
-
-	void reverse() PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void reverse() PLF_LIST_NOEXCEPT
 	{
 		// Note: Because current_node->next has to be read during swapping in this process anyway, including a test to figure out whether or not a given group has erased elements within it, and thus avoid per-node tests, is actually detrimental to performance according to benchmarks. This is unlike sort() where current_node->next is not used in the rest of the process and avoiding per-node tests of it's value is therefore beneficial in benchmarks.
 		if (node_pointer_allocator_pair.total_number_of_elements > 1)
@@ -3167,7 +3212,7 @@ private:
 	// Used by unique()
 	struct eq
 	{
-		inline bool operator() (const element_type &a, const element_type &b) const PLF_LIST_NOEXCEPT
+		PLF_LIST_CPP14_CONSTEXPR inline bool operator() (const element_type &a, const element_type &b) const PLF_LIST_NOEXCEPT
 		{
 			return a == b;
 		}
@@ -3179,15 +3224,15 @@ private:
 	struct eq_to
 	{
 		const element_type value;
-
-		explicit eq_to(const element_type store_value):
+		
+		PLF_LIST_CONSTEXPR explicit eq_to(const element_type store_value):
 			value(store_value)
 		{}
-
-		eq_to() PLF_LIST_NOEXCEPT
+		
+		PLF_LIST_CONSTEXPR eq_to() PLF_LIST_NOEXCEPT
 		{}
-
-		inline bool operator() (const element_type compare_value) const PLF_LIST_NOEXCEPT
+		
+		PLF_LIST_CONSTEXPR inline bool operator() (const element_type compare_value) const PLF_LIST_NOEXCEPT
 		{
 			return value == compare_value;
 		}
@@ -3198,7 +3243,7 @@ private:
 public:
 
 	template <class comparison_function>
-	size_type unique(comparison_function compare)
+	PLF_LIST_CPP14_CONSTEXPR size_type unique(comparison_function compare)
 	{
   		const size_type original_number_of_elements = node_pointer_allocator_pair.total_number_of_elements;
 
@@ -3221,10 +3266,10 @@ public:
 
 		return original_number_of_elements - node_pointer_allocator_pair.total_number_of_elements;
 	}
-
-
-
-	inline size_type unique()
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline size_type unique()
 	{
 		return unique(eq());
 	}
@@ -3232,7 +3277,7 @@ public:
 
 
 	template <class predicate_function>
-	size_type remove_if(predicate_function predicate)
+	PLF_LIST_CPP14_CONSTEXPR size_type remove_if(predicate_function predicate)
 	{
   		const size_type original_number_of_elements = node_pointer_allocator_pair.total_number_of_elements;
 
@@ -3313,17 +3358,17 @@ public:
 
 		return original_number_of_elements - node_pointer_allocator_pair.total_number_of_elements;
 	}
-
-
-
-	inline size_type remove(const element_type &value)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR inline size_type remove(const element_type &value)
 	{
 		return remove_if(eq_to(value));
 	}
-
-
-
-	void resize(const size_type number_of_elements, const element_type &value = element_type())
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void resize(const size_type number_of_elements, const element_type &value = element_type())
 	{
 		if (node_pointer_allocator_pair.total_number_of_elements == number_of_elements)
 		{
@@ -3355,7 +3400,7 @@ public:
 
 	// Range assign:
  	template <class iterator_type>
- 	inline void assign(const typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+	PLF_LIST_CPP14_CONSTEXPR inline void assign(const typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
 	{
 		clear();
 		insert(end_iterator, first, last);
@@ -3365,7 +3410,7 @@ public:
 
 
 	// Fill assign:
-	inline void assign(const size_type number_of_elements, const element_type &value)
+	PLF_LIST_CPP14_CONSTEXPR inline void assign(const size_type number_of_elements, const element_type &value)
 	{
 		clear();
 		reserve(number_of_elements); // Will return anyway if capacity already > number_of_elements
@@ -3376,24 +3421,24 @@ public:
 
 	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
 		// Initializer-list assign:
-		inline void assign(const std::initializer_list<element_type> &element_list)
+		PLF_LIST_CPP14_CONSTEXPR inline void assign(const std::initializer_list<element_type> &element_list)
 		{
 			clear();
 			reserve(element_list.size());
 			insert(end_iterator, element_list);
 		}
 	#endif
-
-
-
-	inline allocator_type get_allocator() const PLF_LIST_NOEXCEPT
+	
+	
+	
+	PLF_LIST_CONSTEXPR inline allocator_type get_allocator() const PLF_LIST_NOEXCEPT
 	{
 		return element_allocator_type();
 	}
-
-
-
-	iterator unordered_find_single(const element_type &element_to_match) noexcept
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR iterator unordered_find_single(const element_type &element_to_match) PLF_LIST_NOEXCEPT
 	{
 		if (node_pointer_allocator_pair.total_number_of_elements != 0)
 		{
@@ -3447,10 +3492,10 @@ public:
 
 		return end_iterator;
 	}
-
-
-
-	list<iterator> unordered_find_multiple(const element_type &element_to_match, const size_type number_to_find)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_multiple(const element_type &element_to_match, const size_type number_to_find)
 	{
 		list<iterator> return_list;
 		size_type number_found = 0;
@@ -3527,10 +3572,10 @@ public:
 
 		return return_list;
 	}
-
-
-
-	list<iterator> unordered_find_all(const element_type &element_to_match)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_all(const element_type &element_to_match)
 	{
 		list<iterator> return_list;
 
@@ -3586,10 +3631,10 @@ public:
 
 		return return_list;
 	}
-
-
-
-	void swap(list &source) PLF_LIST_NOEXCEPT_SWAP(allocator_type)
+	
+	
+	
+	PLF_LIST_CPP14_CONSTEXPR void swap(list &source) PLF_LIST_NOEXCEPT_SWAP(allocator_type)
 	{
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
 			list temp(std::move(source));
@@ -3623,7 +3668,7 @@ public:
 
 
 template <class swap_element_type, class swap_element_allocator_type>
-inline void swap(list<swap_element_type, swap_element_allocator_type> &a, list<swap_element_type, swap_element_allocator_type> &b) PLF_LIST_NOEXCEPT_SWAP(swap_element_allocator_type)
+PLF_LIST_CPP14_CONSTEXPR inline void swap(list<swap_element_type, swap_element_allocator_type> &a, list<swap_element_type, swap_element_allocator_type> &b) PLF_LIST_NOEXCEPT_SWAP(swap_element_allocator_type)
 {
 	a.swap(b);
 }
@@ -3644,7 +3689,7 @@ inline void swap(list<swap_element_type, swap_element_allocator_type> &a, list<s
 #undef PLF_LIST_NOEXCEPT
 #undef PLF_LIST_NOEXCEPT_SWAP
 #undef PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT
-#undef PLF_LIST_CONSTEXPR
+#undef PLF_LIST_CPP17_CONSTEXPR
 
 #undef PLF_LIST_CONSTRUCT
 #undef PLF_LIST_DESTROY

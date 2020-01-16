@@ -1,0 +1,8 @@
+/*
+!.gitignore
+!.gitmodules
+!CMakeLists.txt
+!LICENSE.md
+!plf_list.h
+!plf_list_test_suite.cpp
+!README.md
