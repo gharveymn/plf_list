@@ -3110,7 +3110,7 @@ private:
 
 public:
 
-	PLF_LIST_CPP14_CONSTEXPR void splice(iterator position, list &source)
+	PLF_LIST_CPP14_CONSTEXPR void splice(const_iterator position, list &source)
 	{
 		assert(&source != this);
 
