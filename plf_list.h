@@ -1937,8 +1937,11 @@ private:
 
 public:
 
-
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, const element_type &element)
+#ifdef PLF_LIST_CPP11
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, const element_type &element)
+#else
+  iterator insert(const iterator it, const element_type &element)
+#endif
 	{
 		if (last_endpoint != NULL) // ie. list is not empty
 		{
@@ -2039,7 +2042,7 @@ public:
 
 
 	#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
+	  PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
 		{
 			if (last_endpoint != NULL)
 			{
@@ -2143,7 +2146,7 @@ public:
 
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		template<typename... arguments>
-		PLF_LIST_CPP14_CONSTEXPR iterator emplace(const iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
+		PLF_LIST_CPP14_CONSTEXPR iterator emplace(const_iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
 		{
 			if (last_endpoint != NULL)
 			{
@@ -2292,7 +2295,11 @@ public:
 
 	// Fill insert
 
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
+#ifdef PLF_LIST_CPP11
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator position, const size_type number_of_elements, const element_type &element)
+#else
+  PLF_LIST_CPP14_CONSTEXPR iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
+#endif
 	{
 		if (number_of_elements == 0)
 		{
@@ -2445,7 +2452,11 @@ public:
 	// Range insert
 
 	template <class iterator_type>
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+#ifdef PLF_LIST_CPP11
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+#else
+  PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+#endif
 	{
 		if (first == last)
 		{
@@ -2467,7 +2478,7 @@ public:
 	// Initializer-list insert
 
 	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
-		PLF_LIST_CPP14_CONSTEXPR inline iterator insert(const iterator it, const std::initializer_list<element_type> &element_list)
+		PLF_LIST_CPP14_CONSTEXPR inline iterator insert(const_iterator it, const std::initializer_list<element_type> &element_list)
 		{ // use range insert:
 			return insert(it, element_list.begin(), element_list.end());
 		}
