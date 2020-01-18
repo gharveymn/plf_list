@@ -199,6 +199,10 @@
 #  define PLF_LIST_CONSTEXPR
 #endif
 
+#if __cplusplus >= 201103L
+#  define PLF_LIST_CPP11
+#endif
+
 #ifdef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, ...)	std::allocator_traits<the_allocator>::construct(allocator_instance, location, __VA_ARGS__)
@@ -320,8 +324,13 @@ private:
 	{
 		node_pointer_type next, previous;
 
-		PLF_LIST_CONSTEXPR node_base()
-		{}
+		#ifdef PLF_LIST_CPP11
+			node_base() = default;
+		#else
+			PLF_LIST_CONSTEXPR node_base()
+			{}
+		#endif
+
 		
 		PLF_LIST_CONSTEXPR node_base(const node_pointer_type &n, const node_pointer_type &p):
 			next(n),
@@ -547,10 +556,12 @@ private:
 		#endif
 		
 		
-		
-		PLF_LIST_CPP20_CONSTEXPR ~group_vector() PLF_LIST_NOEXCEPT
-		{}
-		
+		#ifdef PLF_LIST_CPP11
+			~group_vector() = default;
+		#else
+			~group_vector() PLF_LIST_NOEXCEPT
+			{}
+		#endif
 		
 		
 		PLF_LIST_CPP14_CONSTEXPR void destroy_all_data(const node_pointer_type last_endpoint_node) PLF_LIST_NOEXCEPT
@@ -1244,15 +1255,37 @@ public:
 			return copy;
 		}
 		
+		#ifdef PLF_LIST_CPP11
 		
+			list_iterator & operator = (const list_iterator &rh)              = default;
+			list_iterator & operator = (list_iterator &&rh) PLF_LIST_NOEXCEPT = default;
+			list_iterator(const list_iterator &source)                        = default;
+			list_iterator(list_iterator &&source) PLF_LIST_NOEXCEPT           = default;
 		
-		PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator &rh) PLF_LIST_NOEXCEPT
-		{
-			node_pointer = rh.node_pointer;
-			return *this;
-		}
+		#else
 		
+			inline list_iterator & operator = (const list_iterator &rh) PLF_LIST_NOEXCEPT
+			{
+				node_pointer = rh.node_pointer;
+				return *this;
+			}
 		
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				inline list_iterator & operator = (const list_iterator &&rh) PLF_LIST_NOEXCEPT
+				{
+					assert (&rh != this);
+					node_pointer = std::move(rh.node_pointer);
+					return *this;
+				}
+			#endif
+
+			list_iterator(const list_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
+
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				list_iterator (const list_iterator &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
+			#endif
+
+		#endif
 		
 		PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
 		{
@@ -1260,17 +1293,7 @@ public:
 			return *this;
 		}
 
-
-
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator &&rh) PLF_LIST_NOEXCEPT
-			{
-				assert (&rh != this);
-				node_pointer = std::move(rh.node_pointer);
-				return *this;
-			}
-		
-		
 			PLF_LIST_CPP14_CONSTEXPR inline list_iterator & operator = (const list_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
 			{
 				node_pointer = std::move(rh.node_pointer);
@@ -1278,17 +1301,11 @@ public:
 			}
 		#endif
 		
-		
-		
 		PLF_LIST_CONSTEXPR list_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
-		
-		PLF_LIST_CONSTEXPR list_iterator(const list_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 		
 		PLF_LIST_CONSTEXPR list_iterator(const list_iterator<!is_const> &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			PLF_LIST_CONSTEXPR list_iterator (const list_iterator &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
-		
 			PLF_LIST_CONSTEXPR list_iterator(const list_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
 		#endif
 
@@ -1296,8 +1313,6 @@ public:
 		
 		PLF_LIST_CONSTEXPR list_iterator (const node_pointer_type node_p) PLF_LIST_NOEXCEPT: node_pointer(node_p) {}
 	};
-
-
 
 
 	template <bool is_const> class list_reverse_iterator
@@ -1392,13 +1407,41 @@ public:
 		}
 		
 		
+		#ifdef PLF_LIST_CPP11
+
+			list_reverse_iterator & operator = (const list_reverse_iterator &rh)              = default;
+			list_reverse_iterator & operator = (list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT = default;
+			list_reverse_iterator(const list_reverse_iterator &source)                        = default;
+			list_reverse_iterator(list_reverse_iterator &&source) PLF_LIST_NOEXCEPT           = default;
+
+		#else
 		
-		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator &rh) PLF_LIST_NOEXCEPT
-		{
-			node_pointer = rh.node_pointer;
-			return *this;
-		}
+			inline list_reverse_iterator & operator = (const list_reverse_iterator &rh) PLF_LIST_NOEXCEPT
+			{
+				node_pointer = rh.node_pointer;
+				return *this;
+			}
 		
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				inline list_reverse_iterator & operator = (const list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT
+				{
+					assert (&rh != this);
+					node_pointer = std::move(rh.node_pointer);
+					return *this;
+				}
+			#endif
+
+			list_reverse_iterator(const list_reverse_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
+
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				list_reverse_iterator (const list_reverse_iterator &&source) PLF_LIST_NOEXCEPT:
+					node_pointer(std::move(source.node_pointer))
+				{
+					assert(&source != this);
+				}
+			#endif
+
+		#endif
 		
 		
 		PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &rh) PLF_LIST_NOEXCEPT
@@ -1410,14 +1453,6 @@ public:
 
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT
-			{
-				assert (&rh != this);
-				node_pointer = std::move(rh.node_pointer);
-				return *this;
-			}
-		
-		
 			PLF_LIST_CPP14_CONSTEXPR inline list_reverse_iterator & operator = (const list_reverse_iterator<!is_const> &&rh) PLF_LIST_NOEXCEPT
 			{
 				node_pointer = std::move(rh.node_pointer);
@@ -1433,18 +1468,9 @@ public:
 		}
 		
 		
-		
 		PLF_LIST_CONSTEXPR list_reverse_iterator() PLF_LIST_NOEXCEPT: node_pointer(NULL) {}
-		
-		PLF_LIST_CONSTEXPR list_reverse_iterator(const list_reverse_iterator &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			PLF_LIST_CPP14_CONSTEXPR list_reverse_iterator (const list_reverse_iterator &&source) PLF_LIST_NOEXCEPT:
-				node_pointer(std::move(source.node_pointer))
-			{
-				assert(&source != this);
-			}
-		
 			PLF_LIST_CONSTEXPR list_reverse_iterator (const list_reverse_iterator<!is_const> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
 		#endif
 
@@ -1747,7 +1773,7 @@ public:
 	
 	
 	
-	PLF_LIST_CPP14_CONSTEXPR  reference back()
+	PLF_LIST_CPP14_CONSTEXPR inline reference back()
 	{
 		assert(end_node.previous != &end_node);
 		return end_node.previous->element;
