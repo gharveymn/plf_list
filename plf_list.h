@@ -1513,7 +1513,8 @@ private:
 	// If last_endpoint is beyond the end of a memory block it means a new group must be created upon the next insertion if prior erased nodes are not available for re-use.
 	// last_endpoint == NULL means total_number_of_elements is zero, but there may still be groups available due to calling clear(), reserve() on an empty list, or having erased all elements in the list
 	// groups.block_pointer == NULL means an uninitialized container ie. no groups or elements yet
-	iterator end_iterator, begin_iterator; // Returned by begin() and end().
+	iterator begin_iterator; // Returned by begin() and end().
+	// iterator end_iterator;
 	// end_iterator always points to end_node. It is a convenience/optimization variable to save generating many temporary iterators from end_node during functions and during end().
 	// When the list is empty of elements, begin_iterator == end_iterator so that program loops iterating from begin() to end() will function as expected.
 
@@ -1539,7 +1540,6 @@ public:
 		element_allocator_type(element_allocator_type()),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
@@ -1553,7 +1553,6 @@ public:
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
@@ -1567,13 +1566,12 @@ public:
 		element_allocator_type(source),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
 	{
 	 	reserve(source.node_pointer_allocator_pair.total_number_of_elements);
-		insert(end_iterator, source.begin_iterator, source.end_iterator);
+		insert(end(), source.begin_iterator, source.end());
 	}
 
 
@@ -1584,13 +1582,12 @@ public:
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
 	{
 	 	reserve(source.node_pointer_allocator_pair.total_number_of_elements);
-		insert(end_iterator, source.begin_iterator, source.end_iterator);
+		insert(end(), source.begin_iterator, source.end());
 	}
 
 
@@ -1603,13 +1600,12 @@ public:
 			groups(std::move(source.groups)),
 			end_node(std::move(source.end_node)),
 			last_endpoint(std::move(source.last_endpoint)),
-			end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
-			begin_iterator((source.begin_iterator.node_pointer == source.end_iterator.node_pointer) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.begin_iterator)),
+			begin_iterator((source.begin_iterator == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.begin_iterator)),
 			node_pointer_allocator_pair(source.node_pointer_allocator_pair.total_number_of_elements),
 			node_allocator_pair(source.node_allocator_pair.number_of_erased_nodes)
 		{
 			assert(&source != this);
-			end_node.previous->next = begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+			end_node.previous->next = begin_iterator.node_pointer->previous = end().node_pointer;
 			source.groups.blank();
 			source.reset();
 		}
@@ -1623,13 +1619,12 @@ public:
 			groups(std::move(source.groups)),
 			end_node(std::move(source.end_node)),
 			last_endpoint(std::move(source.last_endpoint)),
-			end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
-			begin_iterator((source.begin_iterator.node_pointer == source.end_iterator.node_pointer) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.begin_iterator)),
+			begin_iterator((source.begin_iterator == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.begin_iterator)),
 			node_pointer_allocator_pair(source.node_pointer_allocator_pair.total_number_of_elements),
 			node_allocator_pair(source.node_allocator_pair.number_of_erased_nodes)
 		{
 			assert(&source != this);
-			end_node.previous->next = begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+			end_node.previous->next = begin_iterator.node_pointer->previous = end().node_pointer;
 			source.groups.blank();
 			source.reset();
 		}
@@ -1643,13 +1638,12 @@ public:
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
 	{
 		reserve(fill_number);
-		insert(end_iterator, fill_number, element);
+		insert(end(), fill_number, element);
 	}
 
 
@@ -1661,12 +1655,11 @@ public:
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
-		end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 		node_pointer_allocator_pair(0),
 		node_allocator_pair(0)
 	{
-		insert<iterator_type>(end_iterator, first, last);
+		insert<iterator_type>(end(), first, last);
 	}
 
 
@@ -1678,13 +1671,12 @@ public:
 			element_allocator_type(alloc),
 			end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 			last_endpoint(NULL),
-			end_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 			begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
 			node_pointer_allocator_pair(0),
 			node_allocator_pair(0)
 		{
 			reserve(element_list.size());
-			insert(end_iterator, element_list);
+			insert(end(), element_list);
 		}
 
 	#endif
@@ -1714,14 +1706,14 @@ public:
 
 	PLF_LIST_CPP14_CONSTEXPR inline iterator end() PLF_LIST_NOEXCEPT
 	{
-		return end_iterator;
+		return reinterpret_cast<node_pointer_type>(&end_node);
 	}
 
 
 
 	PLF_LIST_CONSTEXPR inline const_iterator end() const PLF_LIST_NOEXCEPT
 	{
-		return end_iterator;
+		return reinterpret_cast<node_pointer_type>(const_cast<node_base *> (&end_node));
 	}
 
 
@@ -1735,7 +1727,7 @@ public:
 
 	PLF_LIST_CONSTEXPR inline const_iterator cend() const PLF_LIST_NOEXCEPT
 	{
-		return const_iterator(end_iterator.node_pointer);
+		return end();
 	}
 
 
@@ -1749,7 +1741,7 @@ public:
 
 	PLF_LIST_CONSTEXPR inline reverse_iterator rend() const PLF_LIST_NOEXCEPT
  	{
- 		return reverse_iterator(end_iterator.node_pointer);
+ 		return reverse_iterator(end().node_pointer);
  	}
 
 
@@ -1763,7 +1755,7 @@ public:
 
 	PLF_LIST_CONSTEXPR inline const_reverse_iterator crend() const PLF_LIST_NOEXCEPT
  	{
- 		return const_reverse_iterator(end_iterator.node_pointer);
+ 		return const_reverse_iterator(end().node_pointer);
  	}
 
 
@@ -1813,7 +1805,7 @@ public:
 		end_node.next = reinterpret_cast<node_pointer_type>(&end_node);
 		end_node.previous = reinterpret_cast<node_pointer_type>(&end_node);
 		last_endpoint = NULL;
-		begin_iterator.node_pointer = end_iterator.node_pointer;
+		begin_iterator = end();
 		node_pointer_allocator_pair.total_number_of_elements = 0;
 		node_allocator_pair.number_of_erased_nodes = 0;
 	}
@@ -1829,7 +1821,7 @@ private:
 		last_endpoint = NULL;
 		end_node.next = reinterpret_cast<node_pointer_type>(&end_node);
 		end_node.previous = reinterpret_cast<node_pointer_type>(&end_node);
-		begin_iterator.node_pointer = end_iterator.node_pointer;
+		begin_iterator = end();
 		node_pointer_allocator_pair.total_number_of_elements = 0;
 		node_allocator_pair.number_of_erased_nodes = 0;
 	}
@@ -1842,7 +1834,7 @@ private:
 			construct_node(Args&&... args)
 			{
 				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++,
-													 end_iterator.node_pointer, end_iterator.node_pointer, std::forward<Args> (args)...);
+													 end().node_pointer, end().node_pointer, std::forward<Args> (args)...);
 			}
 
 			template <typename ...Args>
@@ -1852,8 +1844,8 @@ private:
 			{
 				try
 				{
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer,
-														 end_iterator.node_pointer, std::forward<Args> (args)...);
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer,
+														 end().node_pointer, std::forward<Args> (args)...);
 				}
 				catch (...)
 				{
@@ -1870,9 +1862,9 @@ private:
 			construct_node(const element_type &element) PLF_LIST_NOEXCEPT
 			{
 				#ifdef PLF_LIST_VARIADICS_SUPPORT
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, element);
 				#else
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, element));
 				#endif
 			};
 
@@ -1886,9 +1878,9 @@ private:
 			try
 			{
 				#ifdef PLF_LIST_VARIADICS_SUPPORT
-				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, element);
+				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, element);
 				#else
-				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, element));
+				PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, element));
 				#endif
 			}
 			catch (...)
@@ -1905,9 +1897,9 @@ private:
 				construct_node(element_type &&element) PLF_LIST_NOEXCEPT
 				{
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move (element));
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move (element));
 					#else
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move (element)));
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move (element)));
 					#endif
 				};
 
@@ -1921,9 +1913,9 @@ private:
 				try
 				{
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end_iterator.node_pointer, end_iterator.node_pointer, std::move (element));
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move (element));
 					#else
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end_iterator.node_pointer, end_iterator.node_pointer, std::move (element)));
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move (element)));
 					#endif
 				}
 				catch (...)
@@ -1982,7 +1974,7 @@ public:
 			}
 			else
 			{
-				group_pointer_type const node_group = groups.get_nearest_freelist_group((it.node_pointer != end_iterator.node_pointer) ? it.node_pointer : end_node.previous);
+				group_pointer_type const node_group = groups.get_nearest_freelist_group((it != end()) ? it.node_pointer : end_node.previous);
 				node_pointer_type const selected_node = node_group->free_list_head;
 				const node_pointer_type previous = node_group->free_list_head->previous;
 
@@ -2029,7 +2021,7 @@ public:
 
 	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_back(const element_type &element)
 	{
-		insert(end_iterator, element);
+		insert(end(), element);
 	}
 
 
@@ -2083,7 +2075,7 @@ public:
 				}
 				else
 				{
-					group_pointer_type const node_group = groups.get_nearest_freelist_group((it.node_pointer != end_iterator.node_pointer) ? it.node_pointer : end_node.previous);
+					group_pointer_type const node_group = groups.get_nearest_freelist_group((it != end()) ? it.node_pointer : end_node.previous);
 					node_pointer_type const selected_node = node_group->free_list_head;
 					const node_pointer_type previous = node_group->free_list_head->previous;
 
@@ -2130,7 +2122,7 @@ public:
 
 		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void push_back(element_type &&element)
 		{
-			insert(end_iterator, std::move(element));
+			insert(end(), std::move(element));
 		}
 
 
@@ -2183,7 +2175,7 @@ public:
 				}
 				else
 				{
-					group_pointer_type const node_group = groups.get_nearest_freelist_group((it.node_pointer != end_iterator.node_pointer) ? it.node_pointer : end_node.previous);
+					group_pointer_type const node_group = groups.get_nearest_freelist_group((it != end()) ? it.node_pointer : end_node.previous);
 					node_pointer_type const selected_node = node_group->free_list_head;
 					const node_pointer_type previous = node_group->free_list_head->previous;
 
@@ -2227,7 +2219,7 @@ public:
 		template<typename... arguments>
 		PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE reference emplace_back(arguments &&... parameters)
 		{
-			return (emplace(end_iterator, std::forward<arguments>(parameters)...)).node_pointer->element;
+			return (emplace(end(), std::forward<arguments>(parameters)...)).node_pointer->element;
 		}
 
 
@@ -2303,7 +2295,7 @@ public:
 	{
 		if (number_of_elements == 0)
 		{
-			return end_iterator;
+			return end();
 		}
 		else if (number_of_elements == 1)
 		{
@@ -2331,17 +2323,17 @@ public:
 					{
 						groups.initialize(remainder);
 						end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-						group_fill_position(element, remainder, end_iterator.node_pointer);
+						group_fill_position(element, remainder, end().node_pointer);
 					}
 					else
 					{ // Create first group as BLOCK_MIN size then subtract difference between BLOCK_MIN and remainder from next group:
 						groups.initialize(PLF_LIST_BLOCK_MIN);
 						end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-						group_fill_position(element, PLF_LIST_BLOCK_MIN, end_iterator.node_pointer);
+						group_fill_position(element, PLF_LIST_BLOCK_MIN, end().node_pointer);
 
 						groups.add_new(PLF_LIST_BLOCK_MAX - (PLF_LIST_BLOCK_MIN - remainder));
 						end_node.previous = last_endpoint = groups.last_endpoint_group->nodes;
-						group_fill_position(element, PLF_LIST_BLOCK_MAX - (PLF_LIST_BLOCK_MIN - remainder), end_iterator.node_pointer);
+						group_fill_position(element, PLF_LIST_BLOCK_MAX - (PLF_LIST_BLOCK_MIN - remainder), end().node_pointer);
 						--multiples;
 					}
 				}
@@ -2349,7 +2341,7 @@ public:
 				{
 					groups.initialize(PLF_LIST_BLOCK_MAX);
 					end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-					group_fill_position(element, PLF_LIST_BLOCK_MAX, end_iterator.node_pointer);
+					group_fill_position(element, PLF_LIST_BLOCK_MAX, end().node_pointer);
 					--multiples;
 				}
 
@@ -2357,7 +2349,7 @@ public:
 				{
 					groups.add_new(PLF_LIST_BLOCK_MAX);
 					end_node.previous = last_endpoint = groups.last_endpoint_group->nodes;
-					group_fill_position(element, PLF_LIST_BLOCK_MAX, end_iterator.node_pointer);
+					group_fill_position(element, PLF_LIST_BLOCK_MAX, end().node_pointer);
 				}
 
 			}
@@ -2365,7 +2357,7 @@ public:
 			{
 				groups.initialize((number_of_elements < PLF_LIST_BLOCK_MIN) ? PLF_LIST_BLOCK_MIN : static_cast<group_size_type>(number_of_elements)); // Construct first group
 				end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-				group_fill_position(element, static_cast<group_size_type>(number_of_elements), end_iterator.node_pointer);
+				group_fill_position(element, static_cast<group_size_type>(number_of_elements), end().node_pointer);
 			}
 
 			node_pointer_allocator_pair.total_number_of_elements = number_of_elements;
@@ -2460,7 +2452,7 @@ public:
 	{
 		if (first == last)
 		{
-			return end_iterator;
+			return end();
 		}
 
 		const iterator return_iterator = insert(it, *first);
@@ -2508,7 +2500,7 @@ public:
 	{
 		assert(node_pointer_allocator_pair.total_number_of_elements != 0);
 		assert(it.node_pointer != NULL);
-		assert(it.node_pointer != end_iterator.node_pointer);
+		assert(it.node_pointer != end().node_pointer);
 
 		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
 			if PLF_LIST_CPP17_CONSTEXPR (!(std::is_trivially_destructible<element_type>::value))
@@ -2668,7 +2660,7 @@ public:
 
 		clear();
 	 	reserve(source.node_pointer_allocator_pair.total_number_of_elements);
-		insert(end_iterator, source.begin_iterator, source.end_iterator);
+		insert(end(), source.begin_iterator, source.end());
 
 		return *this;
 	}
@@ -2687,11 +2679,11 @@ public:
 			groups = std::move(source.groups);
 			end_node = std::move(source.end_node);
 			last_endpoint = std::move(source.last_endpoint);
-			begin_iterator.node_pointer = (source.begin_iterator.node_pointer == source.end_iterator.node_pointer) ? end_iterator.node_pointer : std::move(source.begin_iterator.node_pointer);
+			begin_iterator.node_pointer = (source.begin_iterator == source.end()) ? end().node_pointer : std::move(source.begin_iterator.node_pointer);
 			node_pointer_allocator_pair.total_number_of_elements = source.node_pointer_allocator_pair.total_number_of_elements;
 			node_allocator_pair.number_of_erased_nodes = source.node_allocator_pair.number_of_erased_nodes;
 
-			end_node.previous->next = begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+			end_node.previous->next = begin_iterator.node_pointer->previous = end().node_pointer;
 
 			source.groups.blank();
 			source.reset();
@@ -2712,7 +2704,7 @@ public:
 
 		iterator rh_iterator = rh.begin_iterator;
 
-		for (iterator lh_iterator = begin_iterator; lh_iterator != end_iterator;)
+		for (iterator lh_iterator = begin_iterator; lh_iterator != end();)
 		{
 			if (*rh_iterator++ != *lh_iterator++)
 			{
@@ -2871,11 +2863,11 @@ public:
 
 		begin_iterator.node_pointer = node_pointers[0];
 		begin_iterator.node_pointer->next = node_pointers[1];
-		begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+		begin_iterator.node_pointer->previous = end().node_pointer;
 
 		end_node.next = node_pointers[0];
 		end_node.previous = node_pointers[node_pointer_allocator_pair.total_number_of_elements - 1];
-		end_node.previous->next = end_iterator.node_pointer;
+		end_node.previous->next = end().node_pointer;
 		end_node.previous->previous = node_pointers[node_pointer_allocator_pair.total_number_of_elements - 2];
 
 		node_pointer_type * const back = node_pointers + node_pointer_allocator_pair.total_number_of_elements - 1;
@@ -3064,12 +3056,12 @@ public:
 			#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
 				if PLF_LIST_CPP17_CONSTEXPR (std::is_move_assignable<element_type>::value && std::is_move_constructible<element_type>::value) // move elements if possible, otherwise copy them
 				{
-					temp.insert(temp.end_iterator, std::make_move_iterator(begin_iterator), std::make_move_iterator(end_iterator));
+					temp.insert(temp.end(), std::make_move_iterator(begin_iterator), std::make_move_iterator(end()));
 				}
 				else
 			#endif
 			{
-				temp.insert(temp.end_iterator, begin_iterator, end_iterator);
+				temp.insert(temp.end(), begin_iterator, end());
 			}
 
 			*this = std::move(temp);
@@ -3133,7 +3125,7 @@ public:
 		if (position.node_pointer == begin_iterator.node_pointer) // put source groups at front rather than back
 		{
 			swap(source);
-			position.node_pointer = end_iterator.node_pointer;
+			position = end();
 		}
 
 		position.node_pointer->previous->next = source.begin_iterator.node_pointer;
@@ -3150,7 +3142,7 @@ public:
 	PLF_LIST_CPP14_CONSTEXPR void merge(list &source, comparison_function compare)
 	{
 		assert(&source != this);
-		splice((source.node_pointer_allocator_pair.total_number_of_elements >= node_pointer_allocator_pair.total_number_of_elements) ? end_iterator : begin_iterator, source);
+		splice((source.node_pointer_allocator_pair.total_number_of_elements >= node_pointer_allocator_pair.total_number_of_elements) ? end() : begin_iterator, source);
 		sort(compare);
 	}
 
@@ -3178,7 +3170,7 @@ public:
 
 		node_pointer_type current1 = begin_iterator.node_pointer->next, current2 = source.begin_iterator.node_pointer->next;
 		node_pointer_type previous = source.begin_iterator.node_pointer;
-		const node_pointer_type source_end = source.end_iterator.node_pointer, this_end = end_iterator.node_pointer;
+		const node_pointer_type source_end = source.end().node_pointer, this_end = end().node_pointer;
 
 		begin_iterator.node_pointer->next = source.begin_iterator.node_pointer;
 		source.begin_iterator.node_pointer->previous = begin_iterator.node_pointer;
@@ -3205,7 +3197,7 @@ public:
 		else
 		{
 			end_node.previous = source.end_node.previous;
-			source.end_node.previous->next = end_iterator.node_pointer;
+			source.end_node.previous->next = end().node_pointer;
 		}
 
 		append_process(source);
@@ -3247,8 +3239,8 @@ public:
 			end_node.previous = begin_iterator.node_pointer;
 			begin_iterator.node_pointer = temp;
 
-			end_node.previous->next = end_iterator.node_pointer;
-			begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+			end_node.previous->next = end().node_pointer;
+			begin_iterator.node_pointer->previous = end().node_pointer;
 		}
 	}
 
@@ -3298,7 +3290,7 @@ public:
 		{
 			element_type *previous = &(begin_iterator.node_pointer->element);
 
-			for (iterator current = ++iterator(begin_iterator); current != end_iterator;)
+			for (iterator current = ++iterator(begin_iterator); current != end();)
 			{
 				if (compare(*current, *previous))
 				{
@@ -3428,7 +3420,7 @@ public:
 		}
 		else if (node_pointer_allocator_pair.total_number_of_elements < number_of_elements)
 		{
-			insert(end_iterator, number_of_elements - node_pointer_allocator_pair.total_number_of_elements, value);
+			insert(end(), number_of_elements - node_pointer_allocator_pair.total_number_of_elements, value);
 		}
 		else // ie. node_pointer_allocator_pair.total_number_of_elements > number_of_elements
 		{
@@ -3450,7 +3442,7 @@ public:
 	PLF_LIST_CPP14_CONSTEXPR inline void assign(const typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
 	{
 		clear();
-		insert(end_iterator, first, last);
+		insert(end(), first, last);
 		groups.trim_trailing_groups();
 	}
 
@@ -3461,7 +3453,7 @@ public:
 	{
 		clear();
 		reserve(number_of_elements); // Will return anyway if capacity already > number_of_elements
-		insert(end_iterator, number_of_elements, value);
+		insert(end(), number_of_elements, value);
 	}
 
 
@@ -3472,7 +3464,7 @@ public:
 		{
 			clear();
 			reserve(element_list.size());
-			insert(end_iterator, element_list);
+			insert(end(), element_list);
 		}
 	#endif
 
@@ -3537,7 +3529,7 @@ public:
 			}
 		}
 
-		return end_iterator;
+		return end();
 	}
 
 
@@ -3695,16 +3687,16 @@ public:
 			const size_type swap_total_number_of_elements = node_pointer_allocator_pair.total_number_of_elements, swap_number_of_erased_nodes = node_allocator_pair.number_of_erased_nodes;
 
 			last_endpoint = source.last_endpoint;
-			end_node.next = begin_iterator.node_pointer = (source.begin_iterator.node_pointer != source.end_iterator.node_pointer) ? source.begin_iterator.node_pointer : end_iterator.node_pointer;
-			end_node.previous = (source.begin_iterator.node_pointer != source.end_iterator.node_pointer) ? source.end_node.previous : end_iterator.node_pointer;
-			end_node.previous->next = begin_iterator.node_pointer->previous = end_iterator.node_pointer;
+			end_node.next = begin_iterator.node_pointer = (source.begin_iterator != source.end()) ? source.begin_iterator.node_pointer : end().node_pointer;
+			end_node.previous = (source.begin_iterator != source.end()) ? source.end_node.previous : end().node_pointer;
+			end_node.previous->next = begin_iterator.node_pointer->previous = end().node_pointer;
 			node_pointer_allocator_pair.total_number_of_elements = source.node_pointer_allocator_pair.total_number_of_elements;
 			node_allocator_pair.number_of_erased_nodes = source.node_allocator_pair.number_of_erased_nodes;
 
 			source.last_endpoint = swap_last_endpoint;
-			source.end_node.next = source.begin_iterator.node_pointer = (swap_begin_iterator.node_pointer != end_iterator.node_pointer) ? swap_begin_iterator.node_pointer : source.end_iterator.node_pointer;
-			source.end_node.previous = (swap_begin_iterator.node_pointer != end_iterator.node_pointer) ? swap_end_node_previous : source.end_iterator.node_pointer;
-			source.end_node.previous->next = source.begin_iterator.node_pointer->previous = source.end_iterator.node_pointer;
+			source.end_node.next = source.begin_iterator.node_pointer = (swap_begin_iterator != end()) ? swap_begin_iterator.node_pointer : source.end().node_pointer;
+			source.end_node.previous = (swap_begin_iterator != end()) ? swap_end_node_previous : source.end().node_pointer;
+			source.end_node.previous->next = source.begin_iterator.node_pointer->previous = source.end().node_pointer;
 			source.node_pointer_allocator_pair.total_number_of_elements = swap_total_number_of_elements;
 			source.node_allocator_pair.number_of_erased_nodes = swap_number_of_erased_nodes;
 		#endif
