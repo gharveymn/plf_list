@@ -1597,7 +1597,7 @@ public:
 		PLF_LIST_CPP14_CONSTEXPR list(list &&source) PLF_LIST_NOEXCEPT:
 			element_allocator_type(source),
 			groups(std::move(source.groups)),
-			end_node((source.begin() == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : source.end_node.next, source.end_node.previous),
+			end_node((source.begin() == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.end_node.next), std::move(source.end_node.previous)),
 			last_endpoint(std::move(source.last_endpoint)),
 			node_pointer_allocator_pair(source.node_pointer_allocator_pair.total_number_of_elements),
 			node_allocator_pair(source.node_allocator_pair.number_of_erased_nodes)
@@ -1615,7 +1615,7 @@ public:
 		PLF_LIST_CPP14_CONSTEXPR list(list &&source, const allocator_type &alloc):
 			element_allocator_type(alloc),
 			groups(std::move(source.groups)),
-			end_node((source.begin() == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : source.end_node.next, source.end_node.previous),
+			end_node((source.begin() == source.end()) ? reinterpret_cast<node_pointer_type>(&end_node) : std::move(source.end_node.next), std::move(source.end_node.previous)),
 			last_endpoint(std::move(source.last_endpoint)),
 			node_pointer_allocator_pair(source.node_pointer_allocator_pair.total_number_of_elements),
 			node_allocator_pair(source.node_allocator_pair.number_of_erased_nodes)
@@ -1903,9 +1903,9 @@ private:
 				construct_node(element_type &&element) PLF_LIST_NOEXCEPT
 				{
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move (element));
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move(element));
 					#else
-						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move (element)));
+						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move(element)));
 					#endif
 				};
 
@@ -1919,9 +1919,9 @@ private:
 				try
 				{
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move (element));
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, end().node_pointer, end().node_pointer, std::move(element));
 					#else
-					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move (element)));
+					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint++, node(end().node_pointer, end().node_pointer, std::move(element)));
 					#endif
 				}
 				catch (...)
@@ -2648,8 +2648,8 @@ public:
 			groups.destroy_all_data(last_endpoint);
 
 			groups = std::move(source.groups);
-			end_node.next = (source.begin() == source.end()) ? end().node_pointer : source.begin().node_pointer;
-			end_node.previous = source.end_node.previous;
+			end_node.next = (source.begin() == source.end()) ? end().node_pointer : std::move(source.begin().node_pointer);
+			end_node.previous = std::move(source.end_node.previous);
 			last_endpoint = std::move(source.last_endpoint);
 			node_pointer_allocator_pair.total_number_of_elements = source.node_pointer_allocator_pair.total_number_of_elements;
 			node_allocator_pair.number_of_erased_nodes = source.node_allocator_pair.number_of_erased_nodes;
