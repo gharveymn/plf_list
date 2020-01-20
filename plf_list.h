@@ -1491,9 +1491,15 @@ public:
 		PLF_LIST_CONSTEXPR list_reverse_iterator(const list_reverse_iterator<IsConst> &source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer) {}
 
 		#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-			template <bool IsConst,  class = typename plf_enable_if_c<!IsConst>::type>
-			PLF_LIST_CONSTEXPR list_reverse_iterator (list_reverse_iterator<IsConst> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
-		#endif
+			template <bool IsConst, class = typename plf_enable_if_c<!IsConst>::type>
+			PLF_LIST_CONSTEXPR list_reverse_iterator(list_reverse_iterator<IsConst> &&source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer)) {}
+    #endif
+
+    PLF_LIST_CONSTEXPR explicit list_reverse_iterator(const list_iterator<is_const>& source) PLF_LIST_NOEXCEPT: node_pointer(source.node_pointer->previous) { }
+
+    #ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+      PLF_LIST_CONSTEXPR explicit list_reverse_iterator(list_iterator<is_const>&& source) PLF_LIST_NOEXCEPT: node_pointer(std::move(source.node_pointer->previous)) { }
+    #endif
 
 	private:
 
@@ -1513,10 +1519,6 @@ private:
 	// If last_endpoint is beyond the end of a memory block it means a new group must be created upon the next insertion if prior erased nodes are not available for re-use.
 	// last_endpoint == NULL means total_number_of_elements is zero, but there may still be groups available due to calling clear(), reserve() on an empty list, or having erased all elements in the list
 	// groups.block_pointer == NULL means an uninitialized container ie. no groups or elements yet
-	// iterator begin_iterator; // Returned by begin() and end().
-	// iterator end_iterator;
-	// end_iterator always points to end_node. It is a convenience/optimization variable to save generating many temporary iterators from end_node during functions and during end().
-	// When the list is empty of elements, begin_iterator == end_iterator so that program loops iterating from begin() to end() will function as expected.
 
 
 	struct ebco_pair1 : node_pointer_allocator_type // Packaging the group allocator with least-used member variables, for empty-base-class optimisation
@@ -1724,30 +1726,44 @@ public:
 
 
 
-	PLF_LIST_CONSTEXPR inline reverse_iterator rbegin() const PLF_LIST_NOEXCEPT
+  PLF_LIST_CPP14_CONSTEXPR inline reverse_iterator rbegin() PLF_LIST_NOEXCEPT
+  {
+    return reverse_iterator(end());
+  }
+
+
+
+	PLF_LIST_CONSTEXPR inline const_reverse_iterator rbegin() const PLF_LIST_NOEXCEPT
  	{
- 		return reverse_iterator(end_node.previous);
+ 		return const_reverse_iterator(end());
  	}
 
 
 
-	PLF_LIST_CONSTEXPR inline reverse_iterator rend() const PLF_LIST_NOEXCEPT
+  PLF_LIST_CPP14_CONSTEXPR inline reverse_iterator rend() PLF_LIST_NOEXCEPT
+  {
+    return reverse_iterator(begin());
+  }
+
+
+
+	PLF_LIST_CONSTEXPR inline const_reverse_iterator rend() const PLF_LIST_NOEXCEPT
  	{
- 		return reverse_iterator(end().node_pointer);
+ 		return const_reverse_iterator(begin());
  	}
 
 
 
 	PLF_LIST_CONSTEXPR inline const_reverse_iterator crbegin() const PLF_LIST_NOEXCEPT
  	{
- 		return const_reverse_iterator(end_node.previous);
+ 		return const_reverse_iterator(end());
  	}
 
 
 
 	PLF_LIST_CONSTEXPR inline const_reverse_iterator crend() const PLF_LIST_NOEXCEPT
  	{
- 		return const_reverse_iterator(end().node_pointer);
+ 		return const_reverse_iterator(begin());
  	}
 
 
