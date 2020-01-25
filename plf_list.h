@@ -57,6 +57,7 @@
 		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
 		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
 		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
+    #define PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 	#elif _MSC_VER >= 1900
 		#define PLF_LIST_ALIGNMENT_SUPPORT
 		#define PLF_LIST_TYPE_TRAITS_SUPPORT
@@ -67,6 +68,7 @@
 		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
 		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
 		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
+    #define PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 	#endif
 
 	#if defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)
@@ -172,6 +174,7 @@
 		#define PLF_LIST_CPP17_CONSTEXPR
 	#endif
 
+	#define PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 	#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
 #else
 	#define PLF_LIST_FORCE_INLINE
@@ -197,10 +200,6 @@
 #  define PLF_LIST_CONSTEXPR constexpr
 #else
 #  define PLF_LIST_CONSTEXPR
-#endif
-
-#if __cplusplus >= 201103L
-#  define PLF_LIST_CPP11
 #endif
 
 #ifdef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
@@ -324,7 +323,7 @@ private:
 	{
 		node_pointer_type next, previous;
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 			node_base() = default;
 		#else
 			PLF_LIST_CONSTEXPR node_base()
@@ -556,7 +555,7 @@ private:
 		#endif
 
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 			~group_vector() = default;
 		#else
 			~group_vector() PLF_LIST_NOEXCEPT
@@ -1267,7 +1266,7 @@ public:
 			return copy;
 		}
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 
 			list_iterator & operator = (const list_iterator &rh)              = default;
 			list_iterator & operator = (list_iterator &&rh) PLF_LIST_NOEXCEPT = default;
@@ -1423,7 +1422,7 @@ public:
 		}
 
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_KEYWORD_DEFAULT_SUPPORT
 
 			list_reverse_iterator & operator = (const list_reverse_iterator &rh)              = default;
 			list_reverse_iterator & operator = (list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT = default;
@@ -1935,11 +1934,7 @@ private:
 
 public:
 
-#ifdef PLF_LIST_CPP11
 	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, const element_type &element)
-#else
-  iterator insert(const iterator it, const element_type &element)
-#endif
 	{
 		if (last_endpoint != NULL) // ie. list is not empty
 		{
@@ -2263,11 +2258,7 @@ public:
 
 	// Fill insert
 
-#ifdef PLF_LIST_CPP11
 	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator position, const size_type number_of_elements, const element_type &element)
-#else
-  PLF_LIST_CPP14_CONSTEXPR iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
-#endif
 	{
 		if (number_of_elements == 0)
 		{
@@ -2420,11 +2411,7 @@ public:
 	// Range insert
 
 	template <class iterator_type>
-#ifdef PLF_LIST_CPP11
 	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
-#else
-  PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
-#endif
 	{
 		if (first == last)
 		{
