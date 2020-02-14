@@ -27,7 +27,10 @@ IF(PLF_LIST_BUILD_TESTS)
   TARGET_LINK_LIBRARIES(test_plf_list plf_list)
 
   SET_TARGET_PROPERTIES(test_plf_list PROPERTIES
-                        CXX_STANDARD          20
+                        CXX_STANDARD          11
                         CXX_STANDARD_REQUIRED YES
                         CXX_EXTENSIONS        NO)
+
+  ADD_SUBDIRECTORY(test)
+
 ENDIF()
