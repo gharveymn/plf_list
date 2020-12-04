@@ -1,3 +1,5 @@
+#include "plf_list.h"
+
 #if defined(_MSC_VER)
 	#define PLF_FORCE_INLINE __forceinline
 
@@ -129,11 +131,9 @@
 	#include <memory> // std::shared_ptr
 #endif
 
+#ifdef PLF_LIST_CPP11
 #include <chrono>
-
-#include "plf_list.h"
-
-
+#endif
 
 
 void title1(const char *title_text)
@@ -260,9 +260,11 @@ int main(int argc, char **argv)
 		std::cin.get();
 	#endif
 	
+	#ifdef PLF_LIST_CPP11
 	using clock = std::chrono::high_resolution_clock;
 	using time = clock::time_point;
 	time t1 = clock::now ();
+	#endif
 
 	for (unsigned int prime_loop_counter = 0; prime_loop_counter != 50; ++prime_loop_counter)
 	{
@@ -1990,10 +1992,12 @@ int main(int argc, char **argv)
 		#endif
 	}
 	
+	#ifdef PLF_LIST_CPP11
 	time t2 = clock::now ();
 	std::cout << "Time taken: " << std::chrono::duration_cast<std::chrono::duration<double>> (t2 - t1).count () << std::endl;
 	std::cout << "All tests passed!" << std::endl;
-	// title1("All tests passed!");
+	title1("All tests passed!");
+	#endif
 
 	return 0;
 }
