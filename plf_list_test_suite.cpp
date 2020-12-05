@@ -1,45 +1,30 @@
 #include "plf_list.h"
 
 #if defined(_MSC_VER)
-	#define PLF_FORCE_INLINE __forceinline
-
-	#if _MSC_VER < 1600
-		#define PLF_NOEXCEPT throw()
-		#define PLF_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1600
-		#define PLF_MOVE_SEMANTICS_SUPPORT
-		#define PLF_NOEXCEPT throw()
-		#define PLF_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1700
-		#define PLF_TYPE_TRAITS_SUPPORT
-		#define PLF_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_MOVE_SEMANTICS_SUPPORT
-		#define PLF_NOEXCEPT throw()
-		#define PLF_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1800
-		#define PLF_TYPE_TRAITS_SUPPORT
-		#define PLF_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_VARIADICS_SUPPORT // Variadics, in this context, means both variadic templates and variadic macros are supported
-		#define PLF_MOVE_SEMANTICS_SUPPORT
-		#define PLF_NOEXCEPT throw()
-		#define PLF_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-		#define PLF_INITIALIZER_LIST_SUPPORT
-	#elif _MSC_VER >= 1900
-		#define PLF_TYPE_TRAITS_SUPPORT
-		#define PLF_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_VARIADICS_SUPPORT
-		#define PLF_MOVE_SEMANTICS_SUPPORT
+	#if _MSC_VER >= 1900
+		#define PLF_ALIGNMENT_SUPPORT
 		#define PLF_NOEXCEPT noexcept
-		#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
+	#else
+		#define PLF_NOEXCEPT throw()
+	#endif
+
+	#if _MSC_VER >= 1600
+		#define PLF_MOVE_SEMANTICS_SUPPORT
+	#endif
+
+	#if _MSC_VER >= 1700
+		#define PLF_TYPE_TRAITS_SUPPORT
+	#endif
+	#if _MSC_VER >= 1800
+		#define PLF_VARIADICS_SUPPORT // Variadics, in this context, means both variadic templates and variadic macros are supported
 		#define PLF_INITIALIZER_LIST_SUPPORT
 	#endif
-#elif defined(__cplusplus) && __cplusplus >= 201103L
-	#define PLF_FORCE_INLINE // note: GCC creates faster code without forcing inline
+
+	#if defined(_MSVC_LANG) && (_MSVC_LANG > 201703L)
+		#define PLF_CPP20_SUPPORT
+	#endif
+#elif defined(__cplusplus) && __cplusplus >= 201103L // C++11 support, at least
+	#define PLF_MOVE_SEMANTICS_SUPPORT
 
 	#if defined(__GNUC__) && defined(__GNUC_MINOR__) && !defined(__clang__) // If compiler is GCC/G++
 		#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || __GNUC__ > 4 // 4.2 and below do not support variadic templates
@@ -50,24 +35,12 @@
 		#endif
 		#if (__GNUC__ == 4 && __GNUC_MINOR__ < 6) || __GNUC__ < 4
 			#define PLF_NOEXCEPT throw()
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
-			#define PLF_NOEXCEPT_SWAP(the_allocator)
-		#elif __GNUC__ < 6
+		#else
 			#define PLF_NOEXCEPT noexcept
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept
-			#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept
-		#else // C++17 support
-			#define PLF_NOEXCEPT noexcept
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
-			#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
-		#endif
-		#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || __GNUC__ > 4
-			#define PLF_ALLOCATOR_TRAITS_SUPPORT
 		#endif
 		#if __GNUC__ >= 5 // GCC v4.9 and below do not support std::is_trivially_copyable
 			#define PLF_TYPE_TRAITS_SUPPORT
 		#endif
-
 	#elif defined(__GLIBCXX__) // Using another compiler type with libstdc++ - we are assuming full c++11 compliance for compiler - which may not be true
 		#if __GLIBCXX__ >= 20080606 	// libstdc++ 4.2 and below do not support variadic templates
 			#define PLF_VARIADICS_SUPPORT
@@ -76,46 +49,31 @@
 			#define PLF_INITIALIZER_LIST_SUPPORT
 		#endif
 		#if __GLIBCXX__ >= 20160111
-			#define PLF_ALLOCATOR_TRAITS_SUPPORT
 			#define PLF_NOEXCEPT noexcept
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
-			#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
 		#elif __GLIBCXX__ >= 20120322
-			#define PLF_ALLOCATOR_TRAITS_SUPPORT
 			#define PLF_NOEXCEPT noexcept
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept
-			#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept
 		#else
 			#define PLF_NOEXCEPT throw()
-			#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
-			#define PLF_NOEXCEPT_SWAP(the_allocator)
 		#endif
 		#if __GLIBCXX__ >= 20150422 // libstdc++ v4.9 and below do not support std::is_trivially_copyable
 			#define PLF_TYPE_TRAITS_SUPPORT
 		#endif
-	#elif defined(_LIBCPP_VERSION) // No type trait support in libc++ to date
-		#define PLF_ALLOCATOR_TRAITS_SUPPORT
+	#elif (defined(_LIBCPP_CXX03_LANG) || defined(_LIBCPP_HAS_NO_RVALUE_REFERENCES) || defined(_LIBCPP_HAS_NO_VARIADICS)) // Special case for checking C++11 support with libCPP
+		#define PLF_STATIC_ASSERT(check, message) assert(check)
+		#define PLF_NOEXCEPT throw()
+	#else // Assume type traits and initializer support for other compilers and standard libraries
 		#define PLF_VARIADICS_SUPPORT
-		#define PLF_INITIALIZER_LIST_SUPPORT
-		#define PLF_NOEXCEPT noexcept
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal:value)
-		#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept
-	#else // Assume type traits and initializer support for non-GCC compilers and standard libraries
-		#define PLF_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_VARIADICS_SUPPORT
-		#define PLF_INITIALIZER_LIST_SUPPORT
 		#define PLF_TYPE_TRAITS_SUPPORT
+		#define PLF_MOVE_SEMANTICS_SUPPORT
+		#define PLF_INITIALIZER_LIST_SUPPORT
 		#define PLF_NOEXCEPT noexcept
-		#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal:value)
-		#define PLF_NOEXCEPT_SWAP(the_allocator) noexcept
 	#endif
 
-	#define PLF_MOVE_SEMANTICS_SUPPORT
+	#if __cplusplus > 201703L && ((defined(__clang__) && (__clang_major__ >= 10)) || (defined(__GNUC__) && __GNUC__ >= 10) || (!defined(__clang__) && !defined(__GNUC__))) // assume correct C++20 implementation for other compilers
+		#define PLF_CPP20_SUPPORT
+	#endif
 #else
-	#define PLF_FORCE_INLINE
 	#define PLF_NOEXCEPT throw()
-	#define PLF_NOEXCEPT_SWAP(the_allocator)
-	#define PLF_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
 #endif
 
 
@@ -138,37 +96,37 @@
 
 void title1(const char *title_text)
 {
-	// std::cout << std::endl << std::endl << std::endl << "*** " << title_text << " ***" << std::endl;
-	// std::cout << "===========================================" << std::endl << std::endl << std::endl; 
+	std::cout << std::endl << std::endl << std::endl << "*** " << title_text << " ***" << std::endl;
+	std::cout << "===========================================" << std::endl << std::endl << std::endl; 
 }
 
 
 
 void title2(const char *title_text)
 {
-	// std::cout << std::endl << std::endl << "--- " << title_text << " ---" << std::endl << std::endl;
+	std::cout << std::endl << std::endl << "--- " << title_text << " ---" << std::endl << std::endl;
 }
 
 	
 void title3(const char *title_text)
 {
-	// std::cout << std::endl << title_text << std::endl;
+	std::cout << std::endl << title_text << std::endl;
 }
 
 	
 
 void failpass(const char *test_type, bool condition)
 {
-	// std::cout << "\n" << test_type << ": ";
+	std::cout << "\n" << test_type << ": ";
 	
 	if (condition) 
 	{ 
-		// std::cout << "Pass\n\n";
-	} 
+		std::cout << "Pass\n\n";
+	}
 	else 
 	{
 		std::cout << "Fail" << std::endl;
-		// std::cin.get(); 
+		std::cin.get(); 
 		abort(); 
 	}
 }
@@ -182,7 +140,7 @@ unsigned int xor_rand()
 	static unsigned int y = 362436069;
 	static unsigned int z = 521288629;
 	static unsigned int w = 88675123;
-	
+
 	const unsigned int t = x ^ (x << 11); 
 
 	// Rotate the static values (w rotation in return statement):
@@ -254,12 +212,12 @@ int main(int argc, char **argv)
 	#if defined(PLF_INITIALIZER_LIST_SUPPORT) || defined(PLF_MOVE_SEMANTICS_SUPPORT)
 		bool passed = true;
 	#endif
-	
+
 	#ifndef PLF_INITIALIZER_LIST_SUPPORT
 		std::cout << "Initializer_list support (C++11 or higher) is required for most tests. Most tests will skipped without it. Press ENTER to continue." << std::endl;
 		std::cin.get();
 	#endif
-	
+
 	#ifdef PLF_LIST_CPP11
 	using clock = std::chrono::high_resolution_clock;
 	using time = clock::time_point;
@@ -269,19 +227,19 @@ int main(int argc, char **argv)
 	for (unsigned int prime_loop_counter = 0; prime_loop_counter != 50; ++prime_loop_counter)
 	{
 		int test_counter = 1;
-		
+
 		#ifdef PLF_INITIALIZER_LIST_SUPPORT
 		{
-			title2("Merge tests");	
+			title2("Merge tests");
 			plf::list<int> list1;
 			list1.insert(list1.end(), {1, 3, 5, 7, 9});
 			plf::list<int> list2 = {2, 4, 6, 8, 10};
-			
+
 			list1.merge(list2);
-			
+
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if (test_counter++ != *it)
 				{
@@ -335,7 +293,7 @@ int main(int argc, char **argv)
 			test_counter = 1;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if (test_counter++ != *it)
 				{
@@ -361,7 +319,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				test_counter += *it;
 			}
 			
@@ -384,7 +342,7 @@ int main(int argc, char **argv)
 			
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				test_counter += *it;
 			}
 
@@ -407,7 +365,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				test_counter += *it;
 			}
 			
@@ -429,7 +387,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				test_counter += *it;
 			}
 			
@@ -444,7 +402,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				
 				if(*it < test_counter)
 				{
@@ -462,7 +420,7 @@ int main(int argc, char **argv)
 			test_counter = 65535;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				
 				if(*it > test_counter)
 				{
@@ -483,7 +441,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if(*it < test_counter)
 				{
@@ -530,7 +488,7 @@ int main(int argc, char **argv)
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if(*it == test_counter)
 				{
@@ -551,7 +509,7 @@ int main(int argc, char **argv)
 
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if (*it > 15)
 				{
@@ -574,7 +532,7 @@ int main(int argc, char **argv)
 			
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if(*it == 5)
 				{
@@ -597,7 +555,7 @@ int main(int argc, char **argv)
 
 			list1.reserve(4097);
 
-			// std::cout << "\nInitial capacity after reserve = " << list1.capacity() << std::endl;
+			std::cout << "\nInitial capacity after reserve = " << list1.capacity() << std::endl;
 			
 			failpass("Reserve from empty test", list1.capacity() >= 4097);
 
@@ -624,15 +582,15 @@ int main(int argc, char **argv)
 				++test_counter;
 			}
 			
-			// std::cout << "\nSize (after iteration) = " << test_counter << std::endl;
-			// std::cout << "\nCapacity after insertion = " << list1.capacity() << std::endl;
+			std::cout << "\nSize (after iteration) = " << test_counter << std::endl;
+			std::cout << "\nCapacity after insertion = " << list1.capacity() << std::endl;
 
 			failpass("Fill-insert test", list1.size() == 10001 && test_counter == 10001 && list1.capacity() >= 10001);
 
 
 
 			list1.reserve(15000);
-			// std::cout << "\nCapacity after 2nd reserve = " << list1.capacity() << std::endl;
+			std::cout << "\nCapacity after 2nd reserve = " << list1.capacity() << std::endl;
 			failpass("Reserve post-insertion test", list1.capacity() >= 15000);
 
 
@@ -640,12 +598,12 @@ int main(int argc, char **argv)
 			title2("Resize tests");
 
 			list1.resize(2);
-			// std::cout << "\nCapacity after resize = " << list1.capacity() << std::endl;
+			std::cout << "\nCapacity after resize = " << list1.capacity() << std::endl;
 
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				++test_counter;
 			}
 			
@@ -658,12 +616,12 @@ int main(int argc, char **argv)
 			std::vector<int> test_vector = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 			
 			list1.assign(test_vector.begin(), test_vector.end());
-			// std::cout << "\nCapacity after range-assign = " << list1.capacity() << std::endl;
+			std::cout << "\nCapacity after range-assign = " << list1.capacity() << std::endl;
 
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				
 				if (++test_counter != *it)
 				{
@@ -676,14 +634,14 @@ int main(int argc, char **argv)
 			
 			
 			list1.assign(20, 1);
-			// std::cout << "\nCapacity after fill-assign = " << list1.capacity() << std::endl;
+			std::cout << "\nCapacity after fill-assign = " << list1.capacity() << std::endl;
 
 			test_counter = 0;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 				++test_counter;
-				
+
 				if (*it != 1)
 				{
 					passed = false;
@@ -699,12 +657,12 @@ int main(int argc, char **argv)
 
 				
 			list1.assign(inlist);
-			// std::cout << "\nCapacity after initializer-list assign = " << list1.capacity() << std::endl;
+			std::cout << "\nCapacity after initializer-list assign = " << list1.capacity() << std::endl;
 
 			test_counter = 11;
 			for (plf::list<int>::iterator it = list1.begin(); it != list1.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if (--test_counter != *it)
 				{
@@ -724,7 +682,7 @@ int main(int argc, char **argv)
 			
 			for (plf::list<int>::iterator it = list2.begin(); it != list2.end(); ++it)
 			{
-				// std::cout << *it << ",  ";
+				std::cout << *it << ",  ";
 
 				if (test_counter++ != *it)
 				{
@@ -783,7 +741,7 @@ int main(int argc, char **argv)
 				
 				if (size_counter != list2.size())
 				{
-					// std::cout << "Failing at counter == " << test_counter << std::endl;
+					std::cout << "Failing at counter == " << test_counter << std::endl;
 				}
 			}
 			
@@ -933,7 +891,7 @@ int main(int argc, char **argv)
 					break;
 				}
 			}
-			
+
 			failpass("Copy assignment", passed);
 
 
@@ -1033,7 +991,7 @@ int main(int argc, char **argv)
 			}
 			
 			failpass("Range reorder", pass == true);
-			
+
 
 			it2 = it1 = list1.begin();
 			
@@ -1183,7 +1141,7 @@ int main(int argc, char **argv)
 
 			numtotal = 0;
 			total = 0;
-			
+
 			for (list<int *>::reverse_iterator the_iterator = p_list.rbegin(); the_iterator != p_list.rend(); ++the_iterator)
 			{
 				++total;
@@ -1326,12 +1284,12 @@ int main(int argc, char **argv)
 
 			failpass("Swap test", p_list2.size() == p_list3.size() - 1);
 
-			swap(p_list2, p_list3);
+			plf::swap(p_list2, p_list3);
 
 			failpass("Swap test 2", p_list3.size() == p_list2.size() - 1);
 
 			failpass("max_size() test", p_list2.max_size() > p_list2.size());
-			
+
 		}
 
 		
@@ -1381,7 +1339,7 @@ int main(int argc, char **argv)
 				}
 				
 			} while (!i_list.empty());
-			
+
 			failpass("Erase randomly till-empty test", i_list.size() == 0);
 
 
@@ -1599,7 +1557,7 @@ int main(int argc, char **argv)
 
 		{
 			title2("unordered_find tests");
-			
+
 			list<int> i_list;
 
 			for (int temp = 0; temp != 1000; ++temp)
@@ -1607,36 +1565,47 @@ int main(int argc, char **argv)
 				i_list.push_back(10);
 				i_list.push_back(20);
 			}
-			
+
+			i_list.push_back(50);
 
 			list<int>::iterator found_item = i_list.unordered_find_single(10);
-			
-			failpass("unordered_find_single test", i_list.begin() == found_item);
+
+			failpass("unordered_find_single test 1", i_list.begin() == found_item);
+
+
+			found_item = i_list.unordered_find_single(50);
+
+			failpass("unordered_find_single test 2", *found_item == 50);
 
 
 			found_item = i_list.unordered_find_single(20);
-			
-			failpass("unordered_find_single test 2", ++(list<int>::iterator(i_list.begin())) == found_item);
+
+			failpass("unordered_find_single test 3", ++(list<int>::iterator(i_list.begin())) == found_item);
 
 
 			list<list<int>::iterator> found_items_list = i_list.unordered_find_multiple(20, 50);
-			
+
 			failpass("unordered_find_multiple test", found_items_list.size() == 50);
-			
+
 
 			found_items_list = i_list.unordered_find_multiple(10, 135);
-			
+
 			failpass("unordered_find_multiple test 2", found_items_list.size() == 135);
-			
+
 
 			found_items_list = i_list.unordered_find_all(10);
-			
+
 			failpass("unordered_find_all test", found_items_list.size() == 1000);
-			
-			
+
+
 			found_items_list = i_list.unordered_find_all(20);
-			
+
 			failpass("unordered_find_all test 2", found_items_list.size() == 1000);
+
+
+			found_items_list = i_list.unordered_find_all(50);
+
+			failpass("unordered_find_all test 2", found_items_list.size() == 1);
 		}
 
 
@@ -1853,7 +1822,7 @@ int main(int argc, char **argv)
 
 					if (i_list.size() != static_cast<unsigned int>(counter))
 					{
-						// std::cout << "Fail. loop counter: " << loop_counter << ", internal_loop_counter: " << internal_loop_counter << "." << std::endl;
+						std::cout << "Fail. loop counter: " << loop_counter << ", internal_loop_counter: " << internal_loop_counter << "." << std::endl;
 						std::cin.get(); 
 						abort(); 
 					}
@@ -1950,6 +1919,13 @@ int main(int argc, char **argv)
 			i_list2.insert(i_list2.begin(), some_ints.begin(), some_ints.end());
 			
 			failpass("Fill insertion test", i_list2.size() == 500503);
+
+			#ifdef PLF_INITIALIZER_LIST_SUPPORT
+				i_list = {5, 4, 3, 2, 1};
+
+				failpass("Initializer-list operator = test", i_list.size() == 5 && i_list.front() == 5);
+			#endif
+
 		}
 
 
@@ -1991,7 +1967,7 @@ int main(int argc, char **argv)
 		}
 		#endif
 	}
-	
+
 	#ifdef PLF_LIST_CPP11
 	time t2 = clock::now ();
 	std::cout << "Time taken: " << std::chrono::duration_cast<std::chrono::duration<double>> (t2 - t1).count () << std::endl;

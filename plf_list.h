@@ -1,4 +1,4 @@
-// Copyright (c) 2019, Matthew Bentley (mattreecebentley@gmail.com) www.plflib.org
+// Copyright (c) 2020, Matthew Bentley (mattreecebentley@gmail.com) www.plflib.org
 
 // zLib license (https://www.zlib.net/zlib_license.html):
 // This software is provided 'as-is', without any express or implied
@@ -32,40 +32,33 @@
 #if defined(_MSC_VER)
 	#define PLF_LIST_FORCE_INLINE __forceinline
 
-	#if _MSC_VER < 1600
-		#define PLF_LIST_NOEXCEPT throw()
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1600
-		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
-		#define PLF_LIST_NOEXCEPT throw()
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1700
-		#define PLF_LIST_TYPE_TRAITS_SUPPORT
-		#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
-		#define PLF_LIST_NOEXCEPT throw()
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-	#elif _MSC_VER == 1800
-		#define PLF_LIST_TYPE_TRAITS_SUPPORT
-		#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_LIST_VARIADICS_SUPPORT // Variadics, in this context, means both variadic templates and variadic macros are supported
-		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
-		#define PLF_LIST_NOEXCEPT throw()
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
-		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
-	#elif _MSC_VER >= 1900
+	#if _MSC_VER >= 1900
 		#define PLF_LIST_ALIGNMENT_SUPPORT
+		#define PLF_LIST_NOEXCEPT noexcept
+		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+		#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
+		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_move_assignment::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+	#else
+		#define PLF_LIST_NOEXCEPT throw()
+		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
+		#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator)
+		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) throw()
+	#endif
+
+	#if _MSC_VER >= 1600
+		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
+		#define PLF_LIST_STATIC_ASSERT(check, message) static_assert(check, message)
+	#else
+		#define PLF_LIST_STATIC_ASSERT(check, message) assert(check)
+	#endif
+
+	#if _MSC_VER >= 1700
 		#define PLF_LIST_TYPE_TRAITS_SUPPORT
 		#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_LIST_VARIADICS_SUPPORT
-		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
-		#define PLF_LIST_NOEXCEPT noexcept
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
+	#endif
+	#if _MSC_VER >= 1800
+		#define PLF_LIST_DEFAULT_FUNCTIONS
+		#define PLF_LIST_VARIADICS_SUPPORT // Variadics, in this context, means both variadic templates and variadic macros are supported
 		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
 	#endif
 
@@ -74,13 +67,20 @@
 	#else
 		#define PLF_LIST_CPP17_CONSTEXPR
 	#endif
-
+	#if defined(_MSVC_LANG) && (_MSVC_LANG > 201703L)
+		#define PLF_LIST_CPP20_SUPPORT
+	#endif
 #elif defined(__cplusplus) && __cplusplus >= 201103L // C++11 support, at least
 	#define PLF_LIST_FORCE_INLINE // note: GCC creates faster code without forcing inline
+	#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
+	#define PLF_LIST_DEFAULT_FUNCTIONS
 
 	#if defined(__GNUC__) && defined(__GNUC_MINOR__) && !defined(__clang__) // If compiler is GCC/G++
 		#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || __GNUC__ > 4 // 4.2 and below do not support variadic templates
 			#define PLF_LIST_VARIADICS_SUPPORT
+			#define PLF_LIST_STATIC_ASSERT(check, message) static_assert(check, message)
+		#else
+			#define PLF_LIST_STATIC_ASSERT(check, message) assert(check)
 		#endif
 		#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 4) || __GNUC__ > 4 // 4.3 and below do not support initializer lists
 			#define PLF_LIST_INITIALIZER_LIST_SUPPORT
@@ -89,14 +89,17 @@
 			#define PLF_LIST_NOEXCEPT throw()
 			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
 			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator)
 		#elif __GNUC__ < 6
 			#define PLF_LIST_NOEXCEPT noexcept
 			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept
 			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept
 		#else // C++17 support
 			#define PLF_LIST_NOEXCEPT noexcept
-			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
-			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
+			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_move_assignment::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
 		#endif
 		#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || __GNUC__ > 4
 			#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
@@ -110,6 +113,9 @@
 	#elif defined(__GLIBCXX__) // Using another compiler type with libstdc++ - we are assuming full c++11 compliance for compiler - which may not be true
 		#if __GLIBCXX__ >= 20080606 	// libstdc++ 4.2 and below do not support variadic templates
 			#define PLF_LIST_VARIADICS_SUPPORT
+			#define PLF_LIST_STATIC_ASSERT(check, message) static_assert(check, message)
+		#else
+			#define PLF_LIST_STATIC_ASSERT(check, message) assert(check)
 		#endif
 		#if __GLIBCXX__ >= 20090421 	// libstdc++ 4.3 and below do not support initializer lists
 			#define PLF_LIST_INITIALIZER_LIST_SUPPORT
@@ -117,17 +123,20 @@
 		#if __GLIBCXX__ >= 20160111
 			#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 			#define PLF_LIST_NOEXCEPT noexcept
-			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
-			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value)
+			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_move_assignment::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept(std::allocator_traits<the_allocator>::propagate_on_container_swap::value || std::allocator_traits<the_allocator>::is_always_equal::value)
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
 		#elif __GLIBCXX__ >= 20120322
 			#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 			#define PLF_LIST_NOEXCEPT noexcept
 			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept
 			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept
 		#else
 			#define PLF_LIST_NOEXCEPT throw()
 			#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
 			#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
+			#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator)
 		#endif
 		#if __GLIBCXX__ >= 20130322
 			#define PLF_LIST_ALIGNMENT_SUPPORT
@@ -135,48 +144,40 @@
 		#if __GLIBCXX__ >= 20150422 // libstdc++ v4.9 and below do not support std::is_trivially_copyable
 			#define PLF_LIST_TYPE_TRAITS_SUPPORT
 		#endif
-	#elif defined(_LIBCPP_VERSION)
-		#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
-		#define PLF_LIST_VARIADICS_SUPPORT
-		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
-		#define PLF_LIST_ALIGNMENT_SUPPORT
-		#define PLF_LIST_NOEXCEPT noexcept
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
-		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept
-
-		#if !(defined(_LIBCPP_CXX03_LANG) || defined(_LIBCPP_HAS_NO_RVALUE_REFERENCES))
-			#define PLF_LIST_TYPE_TRAITS_SUPPORT
-		#endif
+	#elif (defined(_LIBCPP_CXX03_LANG) || defined(_LIBCPP_HAS_NO_RVALUE_REFERENCES) || defined(_LIBCPP_HAS_NO_VARIADICS)) // Special case for checking C++11 support with libCPP
+		#define PLF_LIST_STATIC_ASSERT(check, message) assert(check)
+		#define PLF_LIST_NOEXCEPT throw()
+		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
+		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
+		#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator)
 	#else // Assume type traits and initializer support for other compilers and standard libraries
+		#define PLF_LIST_STATIC_ASSERT(check, message) static_assert(check, message)
+		#define PLF_LIST_VARIADICS_SUPPORT
+		#define PLF_LIST_TYPE_TRAITS_SUPPORT
+		#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
 		#define PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 		#define PLF_LIST_ALIGNMENT_SUPPORT
-		#define PLF_LIST_VARIADICS_SUPPORT
 		#define PLF_LIST_INITIALIZER_LIST_SUPPORT
-		#define PLF_LIST_TYPE_TRAITS_SUPPORT
 		#define PLF_LIST_NOEXCEPT noexcept
-		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept(std::allocator_traits<the_allocator>::is_always_equal::value)
+		#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator) noexcept
 		#define PLF_LIST_NOEXCEPT_SWAP(the_allocator) noexcept
+		#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator) noexcept
 	#endif
 
-	#if __cplusplus >= 201703L
-		#if defined(__clang__) && ((__clang_major__ == 3 && __clang_minor__ == 9) || __clang_major__ > 3)
-			#define PLF_LIST_CPP17_CONSTEXPR constexpr
-		#elif defined(__GNUC__) && __GNUC__ >= 7
-			#define PLF_LIST_CPP17_CONSTEXPR constexpr
-		#elif !defined(__clang__) && !defined(__GNUC__)
-			#define PLF_LIST_CPP17_CONSTEXPR constexpr // assume correct C++17 implementation for other compilers
-		#else
-			#define PLF_LIST_CPP17_CONSTEXPR
-		#endif
+	#if __cplusplus >= 201703L && ((defined(__clang__) && ((__clang_major__ == 3 && __clang_minor__ == 9) || __clang_major__ > 3))	 ||	(defined(__GNUC__) && __GNUC__ >= 7)	||   (!defined(__clang__) && !defined(__GNUC__))) // assume correct C++17 implementation for non-GNU/cland compilers
+		#define PLF_LIST_CPP17_CONSTEXPR constexpr
 	#else
 		#define PLF_LIST_CPP17_CONSTEXPR
 	#endif
-
-	#define PLF_LIST_MOVE_SEMANTICS_SUPPORT
+	#if __cplusplus > 201703L && ((defined(__clang__) && (__clang_major__ >= 10)) || (defined(__GNUC__) && __GNUC__ >= 10) || (!defined(__clang__) && !defined(__GNUC__))) // assume correct C++20 implementation for other compilers
+		#define PLF_LIST_CPP20_SUPPORT
+	#endif
 #else
+	#define PLF_LIST_STATIC_ASSERT(check, message) assert(check)
 	#define PLF_LIST_FORCE_INLINE
 	#define PLF_LIST_NOEXCEPT throw()
 	#define PLF_LIST_NOEXCEPT_SWAP(the_allocator)
+	#define PLF_LIST_NOEXCEPT_SPLICE(the_allocator)
 	#define PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT(the_allocator)
 	#define PLF_LIST_CPP17_CONSTEXPR
 #endif
@@ -199,32 +200,29 @@
 #  define PLF_LIST_CONSTEXPR
 #endif
 
-#if __cplusplus >= 201103L
-#  define PLF_LIST_CPP11
-#endif
 
 #ifdef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, ...)	std::allocator_traits<the_allocator>::construct(allocator_instance, location, __VA_ARGS__)
 	#else
-		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, data) 	std::allocator_traits<the_allocator>::construct(allocator_instance, location, data)
+		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, data) std::allocator_traits<the_allocator>::construct(allocator_instance, location, data)
 	#endif
 
 	#define PLF_LIST_DESTROY(the_allocator, allocator_instance, location) 				std::allocator_traits<the_allocator>::destroy(allocator_instance, location)
 	#define PLF_LIST_ALLOCATE(the_allocator, allocator_instance, size, hint) 			std::allocator_traits<the_allocator>::allocate(allocator_instance, size, hint)
  	#define PLF_LIST_ALLOCATE_INITIALIZATION(the_allocator, size, hint) 				std::allocator_traits<the_allocator>::allocate(*this, size, hint)
-	#define PLF_LIST_DEALLOCATE(the_allocator, allocator_instance, location, size) 		std::allocator_traits<the_allocator>::deallocate(allocator_instance, location, size)
+	#define PLF_LIST_DEALLOCATE(the_allocator, allocator_instance, location, size) 	std::allocator_traits<the_allocator>::deallocate(allocator_instance, location, size)
 #else
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, ...)	allocator_instance.construct(location, __VA_ARGS__)
 	#else
-		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, data) 	allocator_instance.construct(location, data)
+		#define PLF_LIST_CONSTRUCT(the_allocator, allocator_instance, location, data) allocator_instance.construct(location, data)
 	#endif
 
-	#define PLF_LIST_DESTROY(the_allocator, allocator_instance, location) 				allocator_instance.destroy(location)
+	#define PLF_LIST_DESTROY(the_allocator, allocator_instance, location) 			allocator_instance.destroy(location)
 	#define PLF_LIST_ALLOCATE(the_allocator, allocator_instance, size, hint)	 		allocator_instance.allocate(size, hint)
 	#define PLF_LIST_ALLOCATE_INITIALIZATION(the_allocator, size, hint) 				the_allocator::allocate(size, hint)
-	#define PLF_LIST_DEALLOCATE(the_allocator, allocator_instance, location, size) 		allocator_instance.deallocate(location, size)
+	#define PLF_LIST_DEALLOCATE(the_allocator, allocator_instance, location, size) 	allocator_instance.deallocate(location, size)
 #endif
 
 
@@ -324,7 +322,7 @@ private:
 	{
 		node_pointer_type next, previous;
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_DEFAULT_FUNCTIONS
 			node_base() = default;
 		#else
 			PLF_LIST_CONSTEXPR node_base()
@@ -556,7 +554,7 @@ private:
 		#endif
 
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_DEFAULT_FUNCTIONS
 			~group_vector() = default;
 		#else
 			~group_vector() PLF_LIST_NOEXCEPT
@@ -1085,7 +1083,7 @@ private:
 
 
 
-		PLF_LIST_CPP14_CONSTEXPR void trim_trailing_groups() PLF_LIST_NOEXCEPT
+		PLF_LIST_CPP14_CONSTEXPR void trim_unused_groups() PLF_LIST_NOEXCEPT // trim trailing groups previously allocated by reserve() or retained via erase()
 		{
 			const group_pointer_type beyond_last = block_pointer + size;
 
@@ -1102,8 +1100,8 @@ private:
 
 		PLF_LIST_CPP14_CONSTEXPR void append(group_vector &source)
 		{
-			source.trim_trailing_groups();
-			trim_trailing_groups();
+			source.trim_unused_groups();
+			trim_unused_groups();
 
 			if (size + source.size > group_allocator_pair.capacity)
 			{
@@ -1267,12 +1265,15 @@ public:
 			return copy;
 		}
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_DEFAULT_FUNCTIONS
 
 			list_iterator & operator = (const list_iterator &rh)              = default;
-			list_iterator & operator = (list_iterator &&rh) PLF_LIST_NOEXCEPT = default;
 			list_iterator(const list_iterator &source)                        = default;
-			list_iterator(list_iterator &&source) PLF_LIST_NOEXCEPT           = default;
+
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				list_iterator & operator = (list_iterator &&rh) PLF_LIST_NOEXCEPT = default;
+				list_iterator(list_iterator &&source) PLF_LIST_NOEXCEPT           = default;
+			#endif
 
 		#else
 
@@ -1423,12 +1424,15 @@ public:
 		}
 
 
-		#ifdef PLF_LIST_CPP11
+		#ifdef PLF_LIST_DEFAULT_FUNCTIONS
 
 			list_reverse_iterator & operator = (const list_reverse_iterator &rh)              = default;
-			list_reverse_iterator & operator = (list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT = default;
 			list_reverse_iterator(const list_reverse_iterator &source)                        = default;
-			list_reverse_iterator(list_reverse_iterator &&source) PLF_LIST_NOEXCEPT           = default;
+
+			#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
+				list_reverse_iterator & operator = (list_reverse_iterator &&rh) PLF_LIST_NOEXCEPT = default;
+				list_reverse_iterator(list_reverse_iterator &&source) PLF_LIST_NOEXCEPT           = default;
+			#endif
 
 		#else
 
@@ -1634,7 +1638,7 @@ public:
 
 	// Fill constructor:
 
-	PLF_LIST_CPP14_CONSTEXPR list(const size_type fill_number, const element_type &element, const element_allocator_type &alloc = element_allocator_type()):
+	PLF_LIST_CPP14_CONSTEXPR explicit list(const size_type fill_number, const element_type &element, const element_allocator_type &alloc = element_allocator_type()):
 		element_allocator_type(alloc),
 		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
 		last_endpoint(NULL),
@@ -1644,6 +1648,22 @@ public:
 	{
 		reserve(fill_number);
 		insert(end(), fill_number, element);
+	}
+
+
+
+	// Default element value fill constructor:
+
+	PLF_LIST_CPP14_CONSTEXPR explicit list(const size_type fill_number, const element_allocator_type &alloc = element_allocator_type()):
+		element_allocator_type(alloc),
+		end_node(reinterpret_cast<node_pointer_type>(&end_node), reinterpret_cast<node_pointer_type>(&end_node)),
+		last_endpoint(NULL),
+		begin_iterator(reinterpret_cast<node_pointer_type>(&end_node)),
+		node_pointer_allocator_pair(0),
+		node_allocator_pair(0)
+	{
+		reserve(fill_number);
+		insert(end(), fill_number, element_type());
 	}
 
 
@@ -1826,6 +1846,56 @@ private:
 		node_allocator_pair.number_of_erased_nodes = 0;
 	}
 
+
+
+	inline void add_group_if_necessary()
+	{
+		if (last_endpoint == groups.last_endpoint_group->beyond_end) // last_endpoint is beyond the end of a group
+		{
+			if (static_cast<size_type>(groups.last_endpoint_group - groups.block_pointer) == groups.size - 1) // ie. there are no reusable groups available at the back of group vector
+			{
+				groups.add_new((node_pointer_allocator_pair.total_number_of_elements < PLF_LIST_BLOCK_MAX) ? static_cast<group_size_type>(node_pointer_allocator_pair.total_number_of_elements) : PLF_LIST_BLOCK_MAX);
+			}
+			else
+			{
+				++groups.last_endpoint_group;
+			}
+
+			last_endpoint = groups.last_endpoint_group->nodes;
+		}
+	}
+
+
+
+	inline void update_sizes_and_iterators(const const_iterator it)
+	{
+		++(groups.last_endpoint_group->number_of_elements);
+		++node_pointer_allocator_pair.total_number_of_elements;
+
+		if (it.node_pointer == begin_iterator.node_pointer)
+		{
+			begin_iterator.node_pointer = last_endpoint;
+		}
+
+		it.node_pointer->previous->next = last_endpoint;
+		it.node_pointer->previous = last_endpoint;
+	}
+
+
+
+	inline void insert_initialize()
+	{
+		if (groups.block_pointer == NULL) // In case of prior reserve/clear call as opposed to being uninitialized
+		{
+			groups.initialize(PLF_LIST_BLOCK_MIN);
+		}
+
+		groups.last_endpoint_group->number_of_elements = 1;
+		end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
+		node_pointer_allocator_pair.total_number_of_elements = 1;
+	}
+
+
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		#ifdef PLF_LIST_TYPE_TRAITS_SUPPORT
 			template <typename ...Args>
@@ -1929,29 +1999,13 @@ private:
 
 public:
 
-#ifdef PLF_LIST_CPP11
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, const element_type &element)
-#else
-  iterator insert(const iterator it, const element_type &element)
-#endif
+	PLF_LIST_CPP14_CONSTEXPR iterator insert(const const_iterator it, const element_type &element)
 	{
 		if (last_endpoint != NULL) // ie. list is not empty
 		{
 			if (node_allocator_pair.number_of_erased_nodes == 0) // No erased nodes available for reuse
 			{
-				if (last_endpoint == groups.last_endpoint_group->beyond_end) // last_endpoint is beyond the end of a group
-				{
-					if (static_cast<size_type>(groups.last_endpoint_group - groups.block_pointer) == groups.size - 1) // ie. there are no reusable groups available at the back of group vector
-					{
-						groups.add_new((node_pointer_allocator_pair.total_number_of_elements < PLF_LIST_BLOCK_MAX) ? static_cast<group_size_type>(node_pointer_allocator_pair.total_number_of_elements) : PLF_LIST_BLOCK_MAX);
-					}
-					else
-					{
-						++groups.last_endpoint_group;
-					}
-
-					last_endpoint = groups.last_endpoint_group->nodes;
-				}
+				add_group_if_necessary();
 
 				#ifdef PLF_LIST_VARIADICS_SUPPORT
 					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, it.node_pointer, it.node_pointer->previous, element);
@@ -1959,17 +2013,7 @@ public:
 					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, node(it.node_pointer, it.node_pointer->previous, element));
 				#endif
 
-				++(groups.last_endpoint_group->number_of_elements);
-				++node_pointer_allocator_pair.total_number_of_elements;
-
-				if (it.node_pointer == begin_iterator.node_pointer)
-				{
-					begin_iterator.node_pointer = last_endpoint;
-				}
-
-				it.node_pointer->previous->next = last_endpoint;
-				it.node_pointer->previous = last_endpoint;
-
+				update_sizes_and_iterators(it);
 				return iterator(last_endpoint++);
 			}
 			else
@@ -2002,14 +2046,7 @@ public:
 		}
 		else // list is empty
 		{
-			if (groups.block_pointer == NULL) // In case of prior reserve/clear call as opposed to being uninitialized
-			{
-				groups.initialize(PLF_LIST_BLOCK_MIN);
-			}
-
-			groups.last_endpoint_group->number_of_elements = 1;
-			end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-			node_pointer_allocator_pair.total_number_of_elements = 1;
+			insert_initialize();
 
 			construct_node (element);
 
@@ -2034,25 +2071,13 @@ public:
 
 
 	#ifdef PLF_LIST_MOVE_SEMANTICS_SUPPORT
-	  PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
+	  PLF_LIST_CPP14_CONSTEXPR iterator insert(const const_iterator it, element_type &&element) // This is almost identical to the insert implementation above with the only change being std::move of the element
 		{
 			if (last_endpoint != NULL)
 			{
 				if (node_allocator_pair.number_of_erased_nodes == 0)
 				{
-					if (last_endpoint == groups.last_endpoint_group->beyond_end)
-					{
-						if (static_cast<size_type>(groups.last_endpoint_group - groups.block_pointer) == groups.size - 1)
-						{
-							groups.add_new((node_pointer_allocator_pair.total_number_of_elements < PLF_LIST_BLOCK_MAX) ? static_cast<group_size_type>(node_pointer_allocator_pair.total_number_of_elements) : PLF_LIST_BLOCK_MAX);
-						}
-						else
-						{
-							++groups.last_endpoint_group;
-						}
-
-						last_endpoint = groups.last_endpoint_group->nodes;
-					}
+					add_group_if_necessary();
 
 					#ifdef PLF_LIST_VARIADICS_SUPPORT
 						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, it.node_pointer, it.node_pointer->previous, std::move(element));
@@ -2060,17 +2085,7 @@ public:
 						PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, node(it.node_pointer, it.node_pointer->previous, std::move(element)));
 					#endif
 
-					++(groups.last_endpoint_group->number_of_elements);
-					++node_pointer_allocator_pair.total_number_of_elements;
-
-					if (it.node_pointer == begin_iterator.node_pointer)
-					{
-						begin_iterator.node_pointer = last_endpoint;
-					}
-
-					it.node_pointer->previous->next = last_endpoint;
-					it.node_pointer->previous = last_endpoint;
-
+					update_sizes_and_iterators(it);
 					return iterator(last_endpoint++);
 				}
 				else
@@ -2103,14 +2118,7 @@ public:
 			}
 			else
 			{
-				if (groups.block_pointer == NULL)
-				{
-					groups.initialize(PLF_LIST_BLOCK_MIN);
-				}
-
-				groups.last_endpoint_group->number_of_elements = 1;
-				end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-				node_pointer_allocator_pair.total_number_of_elements = 1;
+				insert_initialize();
 
 				construct_node (std::move (element));
 
@@ -2138,39 +2146,17 @@ public:
 
 	#ifdef PLF_LIST_VARIADICS_SUPPORT
 		template<typename... arguments>
-		PLF_LIST_CPP14_CONSTEXPR iterator emplace(const_iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
+		PLF_LIST_CPP14_CONSTEXPR iterator emplace(const const_iterator it, arguments &&... parameters) // This is almost identical to the insert implementations above with the only changes being std::forward of element parameters, removal of VARIADICS support checking, and is_nothrow_contructible
 		{
 			if (last_endpoint != NULL)
 			{
 				if (node_allocator_pair.number_of_erased_nodes == 0)
 				{
-					if (last_endpoint == groups.last_endpoint_group->beyond_end)
-					{
-						if (static_cast<size_type>(groups.last_endpoint_group - groups.block_pointer) == groups.size - 1)
-						{
-							groups.add_new((node_pointer_allocator_pair.total_number_of_elements < PLF_LIST_BLOCK_MAX) ? static_cast<group_size_type>(node_pointer_allocator_pair.total_number_of_elements) : PLF_LIST_BLOCK_MAX);
-						}
-						else
-						{
-							++groups.last_endpoint_group;
-						}
-
-						last_endpoint = groups.last_endpoint_group->nodes;
-					}
+            	add_group_if_necessary();
 
 					PLF_LIST_CONSTRUCT(node_allocator_type, node_allocator_pair, last_endpoint, it.node_pointer, it.node_pointer->previous, std::forward<arguments>(parameters)...);
 
-					++(groups.last_endpoint_group->number_of_elements);
-					++node_pointer_allocator_pair.total_number_of_elements;
-
-					if (it.node_pointer == begin_iterator.node_pointer)
-					{
-						begin_iterator.node_pointer = last_endpoint;
-					}
-
-					it.node_pointer->previous->next = last_endpoint;
-					it.node_pointer->previous = last_endpoint;
-
+            	update_sizes_and_iterators(it);
 					return iterator(last_endpoint++);
 				}
 				else
@@ -2193,20 +2179,12 @@ public:
 					{
 						begin_iterator.node_pointer = selected_node;
 					}
-
 					return iterator(selected_node);
 				}
 			}
 			else
 			{
-				if (groups.block_pointer == NULL)
-				{
-					groups.initialize(PLF_LIST_BLOCK_MIN);
-				}
-
-				groups.last_endpoint_group->number_of_elements = 1;
-				end_node.next = end_node.previous = last_endpoint = begin_iterator.node_pointer = groups.last_endpoint_group->nodes;
-				node_pointer_allocator_pair.total_number_of_elements = 1;
+           	insert_initialize();
 
 				construct_node (std::forward<arguments>(parameters)...);
 
@@ -2287,11 +2265,7 @@ public:
 
 	// Fill insert
 
-#ifdef PLF_LIST_CPP11
 	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator position, const size_type number_of_elements, const element_type &element)
-#else
-  PLF_LIST_CPP14_CONSTEXPR iterator insert(iterator position, const size_type number_of_elements, const element_type &element)
-#endif
 	{
 		if (number_of_elements == 0)
 		{
@@ -2444,22 +2418,22 @@ public:
 	// Range insert
 
 	template <class iterator_type>
-#ifdef PLF_LIST_CPP11
-	PLF_LIST_CPP14_CONSTEXPR iterator insert(const_iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
-#else
-  PLF_LIST_CPP14_CONSTEXPR iterator insert(const iterator it, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
-#endif
+	#if defined(PLF_LIST_TYPE_TRAITS_SUPPORT)
+		iterator insert(const const_iterator position, typename plf_enable_if_c<(!std::numeric_limits<iterator_type>::is_integer) && (!std::is_same<typename std::iterator_traits<iterator_type>::iterator_category, std::random_access_iterator_tag>::value), iterator_type>::type first, const iterator_type last)
+	#else
+		iterator insert(const const_iterator position, typename plf_enable_if_c<!std::numeric_limits<iterator_type>::is_integer, iterator_type>::type first, const iterator_type last)
+	#endif
 	{
 		if (first == last)
 		{
 			return end();
 		}
 
-		const iterator return_iterator = insert(it, *first);
+		const iterator return_iterator = insert(position, *first);
 
 		while(++first != last)
 		{
-			insert(it, *first);
+			insert(position, *first);
 		}
 
 		return return_iterator;
@@ -2467,10 +2441,34 @@ public:
 
 
 
+	#if defined(PLF_LIST_TYPE_TRAITS_SUPPORT)
+		template <class iterator_type>
+		iterator insert(const const_iterator position, typename plf_enable_if_c<(!std::numeric_limits<iterator_type>::is_integer) && std::is_same<typename std::iterator_traits<iterator_type>::iterator_category, std::random_access_iterator_tag>::value, iterator_type>::type first, const iterator_type last)
+		{
+			reserve(node_pointer_allocator_pair.total_number_of_elements + static_cast<size_type>(last - first));
+
+			if (first == last)
+			{
+				return end();
+			}
+
+			const iterator return_iterator = insert(position, *first);
+
+			while(++first != last)
+			{
+				insert(position, *first);
+			}
+
+			return return_iterator;
+		}
+	#endif
+
+
+
 	// Initializer-list insert
 
 	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
-		PLF_LIST_CPP14_CONSTEXPR inline iterator insert(const_iterator it, const std::initializer_list<element_type> &element_list)
+		PLF_LIST_CPP14_CONSTEXPR inline iterator insert(const const_iterator it, const std::initializer_list<element_type> &element_list)
 		{ // use range insert:
 			return insert(it, element_list.begin(), element_list.end());
 		}
@@ -2619,7 +2617,6 @@ public:
 				clear();
 			}
 
-
 			return return_iterator;
 		}
 	}
@@ -2693,6 +2690,17 @@ public:
 
 
 
+	#ifdef PLF_LIST_INITIALIZER_LIST_SUPPORT
+		inline list & operator = (const std::initializer_list<element_type> &element_list)
+		{
+			clear();
+			insert(begin_iterator, element_list);
+			return *this;
+		}
+	#endif
+
+
+
 	PLF_LIST_CPP14_CONSTEXPR bool operator == (const list &rh) const PLF_LIST_NOEXCEPT
 	{
 		assert (this != &rh);
@@ -2702,11 +2710,9 @@ public:
 			return false;
 		}
 
-		iterator rh_iterator = rh.begin_iterator;
-
-		for (iterator lh_iterator = begin_iterator; lh_iterator != end();)
+		for (const_iterator lh_iterator = begin_iterator, rh_iterator = rh.begin_iterator; lh_iterator != end(); ++lh_iterator, ++rh_iterator)
 		{
-			if (*rh_iterator++ != *lh_iterator++)
+			if (*lh_iterator != *rh_iterator)
 			{
 				return false;
 			}
@@ -2724,6 +2730,9 @@ public:
 
 
 
+	#ifdef PLF_LIST_CPP20_SUPPORT
+		[[nodiscard]]
+	#endif
 	PLF_LIST_CONSTEXPR inline bool empty() const PLF_LIST_NOEXCEPT
 	{
 		return node_pointer_allocator_pair.total_number_of_elements == 0;
@@ -3025,9 +3034,9 @@ public:
 
 
 
-	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void free_unused_memory() PLF_LIST_NOEXCEPT
+	PLF_LIST_CPP14_CONSTEXPR inline PLF_LIST_FORCE_INLINE void trim() PLF_LIST_NOEXCEPT
 	{
-		groups.trim_trailing_groups();
+		groups.trim_unused_groups();
 	}
 
 
@@ -3045,7 +3054,7 @@ public:
 		}
 		else if (node_allocator_pair.number_of_erased_nodes == 0 && last_endpoint == groups.last_endpoint_group->beyond_end) //edge case - currently no wasted space except for possible trailing groups
 		{
-			groups.trim_trailing_groups();
+			groups.trim_unused_groups();
 			return;
 		}
 
@@ -3141,7 +3150,6 @@ public:
 	template <class comparison_function>
 	PLF_LIST_CPP14_CONSTEXPR void merge(list &source, comparison_function compare)
 	{
-		assert(&source != this);
 		splice((source.node_pointer_allocator_pair.total_number_of_elements >= node_pointer_allocator_pair.total_number_of_elements) ? end() : begin_iterator, source);
 		sort(compare);
 	}
@@ -3424,7 +3432,7 @@ public:
 		}
 		else // ie. node_pointer_allocator_pair.total_number_of_elements > number_of_elements
 		{
-			iterator current(end_node.previous);
+			const_iterator current(end_node.previous);
 
 			for (size_type number_to_remove = node_pointer_allocator_pair.total_number_of_elements - number_of_elements; number_to_remove != 0; --number_to_remove)
 			{
@@ -3443,7 +3451,7 @@ public:
 	{
 		clear();
 		insert(end(), first, last);
-		groups.trim_trailing_groups();
+		groups.trim_unused_groups();
 	}
 
 
@@ -3477,7 +3485,7 @@ public:
 
 
 
-	PLF_LIST_CPP14_CONSTEXPR iterator unordered_find_single(const element_type &element_to_match) PLF_LIST_NOEXCEPT
+	PLF_LIST_CPP14_CONSTEXPR iterator unordered_find_single(const element_type &element_to_match) const PLF_LIST_NOEXCEPT
 	{
 		if (node_pointer_allocator_pair.total_number_of_elements != 0)
 		{
@@ -3529,15 +3537,14 @@ public:
 			}
 		}
 
-		return end();
+		return reinterpret_cast<node_pointer_type>(const_cast<node_base *> (&end_node));
 	}
 
 
 
-	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_multiple(const element_type &element_to_match, const size_type number_to_find)
+	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_multiple(const element_type &element_to_match, size_type number_to_find) const
 	{
 		list<iterator> return_list;
-		size_type number_found = 0;
 
 		if (node_pointer_allocator_pair.total_number_of_elements != 0)
 		{
@@ -3553,7 +3560,7 @@ public:
 						{
 							return_list.push_back(iterator(current_node));
 
-							if (++number_found == number_to_find)
+							if (--number_to_find == 0)
 							{
 								return return_list;
 							}
@@ -3568,7 +3575,7 @@ public:
 						{
 							return_list.push_back(iterator(current_node));
 
-							if (++number_found == number_to_find)
+							if (--number_to_find == 0)
 							{
 								return return_list;
 							}
@@ -3585,7 +3592,7 @@ public:
 					{
 						return_list.push_back(iterator(current_node));
 
-						if (++number_found == number_to_find)
+						if (--number_to_find == 0)
 						{
 							return return_list;
 						}
@@ -3600,7 +3607,7 @@ public:
 					{
 						return_list.push_back(iterator(current_node));
 
-						if (++number_found == number_to_find)
+						if (--number_to_find == 0)
 						{
 							return return_list;
 						}
@@ -3614,7 +3621,7 @@ public:
 
 
 
-	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_all(const element_type &element_to_match)
+	PLF_LIST_CPP14_CONSTEXPR list<iterator> unordered_find_all(const element_type &element_to_match) const
 	{
 		list<iterator> return_list;
 
@@ -3715,11 +3722,38 @@ PLF_LIST_CPP14_CONSTEXPR inline void swap(list<swap_element_type, swap_element_a
 
 } // plf namespace
 
+
+namespace std
+{
+	template <class element_type, class element_allocator_type>
+	inline void swap(plf::list<element_type, element_allocator_type> &a, plf::list<element_type, element_allocator_type> &b) PLF_LIST_NOEXCEPT_SWAP(element_allocator_type)
+	{
+		a.swap(b);
+	}
+
+
+
+	template <class element_type, class element_allocator_type, class predicate_function>
+	inline typename plf::list<element_type, element_allocator_type>::size_type erase_if(plf::list<element_type, element_allocator_type> &container, predicate_function predicate)
+	{
+		return container.remove_if(predicate);
+	}
+
+
+
+	template <class element_type, class element_allocator_type>
+	inline typename plf::list<element_type, element_allocator_type>::size_type erase(plf::list<element_type, element_allocator_type> &container, const element_type &value)
+	{
+		return container.remove(value);
+	}
+}
+
+
 #undef PLF_LIST_BLOCK_MAX
 #undef PLF_LIST_BLOCK_MIN
 
 #undef PLF_LIST_FORCE_INLINE
-
+#undef PLF_LIST_ALIGNMENT_SUPPORT
 #undef PLF_LIST_INITIALIZER_LIST_SUPPORT
 #undef PLF_LIST_TYPE_TRAITS_SUPPORT
 #undef PLF_LIST_ALLOCATOR_TRAITS_SUPPORT
@@ -3729,6 +3763,8 @@ PLF_LIST_CPP14_CONSTEXPR inline void swap(list<swap_element_type, swap_element_a
 #undef PLF_LIST_NOEXCEPT_SWAP
 #undef PLF_LIST_NOEXCEPT_MOVE_ASSIGNMENT
 #undef PLF_LIST_CPP17_CONSTEXPR
+#undef PLF_LIST_CPP20_SUPPORT
+#undef PLF_LIST_STATIC_ASSERT
 
 #undef PLF_LIST_CONSTRUCT
 #undef PLF_LIST_DESTROY
