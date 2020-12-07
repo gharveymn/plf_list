@@ -3,11 +3,9 @@ PROJECT(plf_list
         VERSION 1.6.9
         LANGUAGES CXX)
 
-SET(REQUIRED_CREATE_PACKAGE_VERSION 0.0.1)
-IF(NOT HAS_CREATE_PACKAGE OR
-   NOT CREATE_PACKAGE_VERSION VERSION_GREATER_EQUAL REQUIRED_CREATE_PACKAGE_VERSION)
+IF(NOT CREATE_PACKAGE_VERSION VERSION_GREATER_EQUAL 0.0.4)
   IF(NOT EXISTS "${PROJECT_SOURCE_DIR}/external/create-package/cmake/create-package.cmake")
-    MESSAGE(STATUS "Initializing create-package-${REQUIRED_CREATE_PACKAGE_VERSION} in git submodule.")
+    MESSAGE(STATUS "Initializing create-package-0.0.4 in git submodule.")
     EXECUTE_PROCESS(COMMAND git submodule --quiet update --init -- "${PROJECT_SOURCE_DIR}/external/create-package"
                     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
   ENDIF()
@@ -18,7 +16,7 @@ CREATE_PACKAGE(AUTHOR         mattreecebentley
                NAME           plf_list
                HEADERS        plf_list.h
                HEADERS_PATH   "."
-               HEADERS_PREFIX ".")
+               NO_HEADERS_PREFIX)
 
 # Options
 IF(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
