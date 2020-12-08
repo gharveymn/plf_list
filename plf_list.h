@@ -555,7 +555,7 @@ private:
 
 
 		#ifdef PLF_LIST_DEFAULT_FUNCTIONS
-			~group_vector() = default;
+                        PLF_LIST_CPP20_CONSTEXPR ~group_vector() = default;
 		#else
 			~group_vector() PLF_LIST_NOEXCEPT
 			{}
