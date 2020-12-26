@@ -44,6 +44,11 @@ IF(PLF_LIST_BUILD_TESTS)
 
   ENDIF()
 
+  if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    TARGET_COMPILE_OPTIONS(test_plf_list PUBLIC -fsanitize=address)
+    TARGET_LINK_OPTIONS(test_plf_list PUBLIC -fsanitize=address)
+  endif()
+
   SET_TARGET_PROPERTIES(test_plf_list PROPERTIES
                         CXX_STANDARD          11
                         CXX_STANDARD_REQUIRED YES
