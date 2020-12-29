@@ -29,28 +29,45 @@ ENDIF()
 IF(PLF_LIST_BUILD_TESTS)
   SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-  ADD_EXECUTABLE(test_plf_list plf_list_test_suite.cpp)
-  TARGET_LINK_LIBRARIES(test_plf_list plf_list)
+  SET(TEST_NAME plf_list)
+  SET(SOURCE_FILES plf_list_test_suite.cpp)
 
-  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    TARGET_COMPILE_OPTIONS(test_plf_list PUBLIC -stdlib=libc++ -ftime-trace --coverage -Wall -Wextra)
-    TARGET_LINK_OPTIONS(test_plf_list PUBLIC -Wl,--allow-multiple-definition --coverage)
-    TARGET_LINK_LIBRARIES(test_plf_list c++ c++abi)
-  ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    TARGET_COMPILE_OPTIONS(test_plf_list PUBLIC -Wall -Wextra)
-  ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    TARGET_COMPILE_OPTIONS(test_plf_list PUBLIC /W4)
-  ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  SET(TARGET_VERSIONS 98 11 14 17 20)
 
-  ENDIF()
-
-  if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    TARGET_COMPILE_OPTIONS(test_plf_list PUBLIC -fsanitize=address)
-    TARGET_LINK_OPTIONS(test_plf_list PUBLIC -fsanitize=address)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET(COMPILE_OPTS -stdlib=libc++ -ftime-trace --coverage -Wall -Wextra)
+    SET(LINK_OPTS -Wl,--allow-multiple-definition --coverage)
+    SET(LINK_LIBS c++ c++abi)
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    SET(COMPILE_OPTS -Wall -Wextra)
+    SET(LINK_OPTS )
+    SET(LINK_LIBS )
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    SET(COMPILE_OPTS /W4)
+    SET(LINK_OPTS )
+    SET(LINK_LIBS )
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    SET(COMPILE_OPTS )
+    SET(LINK_OPTS )
+    SET(LINK_LIBS )
   endif()
 
-  SET_TARGET_PROPERTIES(test_plf_list PROPERTIES
-                        CXX_STANDARD          11
-                        CXX_STANDARD_REQUIRED YES
-                        CXX_EXTENSIONS        NO)
+  IF (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    LIST(APPEND COMPILE_OPTS -fsanitize=address)
+    LIST(APPEND LINK_OPTS -fsanitize=address)
+  ENDIF()
+
+  FOREACH(version ${TARGET_VERSIONS})
+    SET(target_name test.${TEST_NAME}.c++${version})
+    ADD_EXECUTABLE(${target_name} ${SOURCE_FILES})
+
+    TARGET_COMPILE_OPTIONS(${target_name} PUBLIC ${COMPILE_OPTS})
+    TARGET_LINK_OPTIONS   (${target_name} PUBLIC ${LINK_OPTS})
+    TARGET_LINK_LIBRARIES (${target_name} ${PACKAGE_NAME} ${LINK_LIBS})
+
+    SET_TARGET_PROPERTIES(${target_name} PROPERTIES
+                          CXX_STANDARD          ${version}
+                          CXX_STANDARD_REQUIRED NO
+                          CXX_EXTENSIONS        NO)
+  ENDFOREACH()
 ENDIF()
